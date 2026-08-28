@@ -96,11 +96,10 @@ NoMoreZombies 是一个 **纯客户端** Fabric mod（**Minecraft 1.21.4**），
 3. 依赖（需同时安装）：
    - **Fabric API**
    - **MaLiLib**（外部依赖，需单独安装）
-   - **ModMenu**（可选，用于从 Mod 列表打开配置）
 
 ## 配置
 
-- 从 ModMenu（NoMoreZombies > Config）打开配置，或按默认热键 **Z+X**。
+- 从 ModMenu（NoMoreZombies > Config， 如果你安装了它）打开配置，或按默认热键 **Z+X**。
 - 所有功能开关**默认关闭**（Tweakeroo 风格）。可在配置界面为任一开关绑定热键，游戏中即时切换。
 - 配置文件为 `config/nomorezombies.json`（明文，可手动编辑）。
 - 数据表（波次时间、道具规律）在游戏内按 **F3+T** 热重载。
@@ -108,5 +107,5 @@ NoMoreZombies 是一个 **纯客户端** Fabric mod（**Minecraft 1.21.4**），
 ## 备注
 
 - 本 mod 纯客户端：从不修改服务器、不发送数据包，也不改变其他玩家能看到的内容。
-- 面向中文 Hypixel Zombies 玩家社区设计；所有解析与提示均兼容中英文游戏文本。
+- 面向全球 Hypixel Zombies 玩家社区设计；所有解析与提示均兼容中英文游戏文本。
 - 如有 Bug 报告或功能建议，请描述你的操作与出现时的日志内容。
