@@ -96,7 +96,6 @@ The interface and all messages are **bilingual (Chinese / English)** and follow 
 3. Dependencies (install alongside):
    - **Fabric API**
    - **MaLiLib** (external dependency, install it separately)
-   - **ModMenu** (optional, lets you open the config from the mod list)
 
 ## Configuration
 
