@@ -1,4 +1,19 @@
-# NoMoreZombies - 使用指南
+<div align="center">
+
+<img src="src/main/resources/icon.png" alt="Logo" width="160" height="160">
+
+# NoMoreZombies - Hypixel Zombies 辅助模组
+
+[English](README.md) | [简体中文](README_ZHT.md)
+
+[![GitHub release](https://img.shields.io/github/v/release/GongSunFangYun/NoMoreZombies?style=flat-square)]()
+[![Downloads](https://img.shields.io/github/downloads/GongSunFangYun/NoMoreZombies/total?style=flat-square)]()
+[![Stars](https://img.shields.io/github/stars/GongSunFangYun/NoMoreZombies?style=flat-square)]()
+[![Forks](https://img.shields.io/github/forks/GongSunFangYun/NoMoreZombies?style=flat-square)]()
+[![Issues](https://img.shields.io/github/issues/GongSunFangYun/NoMoreZombies?style=flat-square)]()
+[![License](https://img.shields.io/github/license/GongSunFangYun/NoMoreZombies?style=flat-square)]()
+
+</div>
 
 NoMoreZombies 是一个 **纯客户端** Fabric mod（**Minecraft 1.21.4**），用于辅助 **Hypixel Zombies** 小游戏。它只读取你的客户端本就可见的数据（聊天、计分板、标题、世界音效、实体元数据），不会在服务器端做任何改动。
 
