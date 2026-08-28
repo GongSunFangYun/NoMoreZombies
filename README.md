@@ -19,7 +19,7 @@ NoMoreZombies is a Fabric mod for Minecraft 1.21.4. It operates entirely on the 
 
 This mod is still in early testing, so there may be a lot of undiscovered bugs. If you find any, please be sure to submit issues, and I'll fix them all when I have some free time.
 
-All features are strictly gated to the Zombies game mode. In any other game mode, every feature is fully disabled and has no effect.
+All features are strictly gated to the Zombies mode. In any other game mode, every feature is fully disabled and has no effect.
 
 All UI elements and messages are available in both Chinese and English; the display language is determined by the client's language setting.
 
@@ -68,10 +68,14 @@ All UI elements and messages are available in both Chinese and English; the disp
 
 ### Entity ESP
 - Draws bounding boxes for the following entities: teammates (green for active, yellow for downed), zombies and hostile mobs (red), and spawned powerups (white).
+
 - Each ESP category can be toggled independently and configured with two rendering modes:
-  - **Normal mode:** respects occlusion—entities behind walls are not visible.
-  - **Through-wall mode:** ignores occlusion—entities remain visible regardless of obstacles.
-- Provides a global through-wall render distance slider, range 5 to 200 blocks, controlling the effective range of through-wall mode.
+  - **Normal mode:** respects depth testing—entities occluded by blocks are not rendered.
+  - **Through-walls mode:** bypasses depth testing—entities remain rendered even when occluded, facilitating rapid positioning of mobs and teammates in the PvE environment.
+
+- A global render distance slider (range 5–200 blocks) controls the effective range of the through-walls mode.
+
+- Through-walls mode is designed exclusively for PvE mob and teammate positioning and does not apply to PvP scenarios.
 
 ### Zombie Health Bar
 - Displays a world-space health bar above each hostile mob, formatted as `[#######------] 12/20HP`. The color changes based on the remaining health percentage.
