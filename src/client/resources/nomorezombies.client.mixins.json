@@ -1,0 +1,39 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "cn.gsfy.nmz.mixin.client",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "InGameHudMixin",
+    "ClientWorldMixin",
+    "ClientPlayNetworkHandlerMixin",
+    "EntityRendererMixin",
+    "RenderPhaseAccessor",
+    "RenderLayerAccessor",
+    "ChatHudMixin",
+    "BossBarHudMixin",
+    "GameRendererCrosshairMixin",
+    "ZoomMixin",
+    "MouseScrollMixin",
+    "MouseSensitivityMixin",
+    "MinecraftClientItemUseMixin",
+    "CpsTrackerMixin",
+    "ClientPlayNetworkHandlerParticleMixin",
+    "InGameOverlayRendererMixin",
+    "AlwaysSneakMixin",
+    "AlwaysSprintMixin",
+    "LightmapBrightnessMixin",
+    "FreeCameraLookMixin",
+    "FreeCameraPlayerMixin",
+    "FreeCameraRenderHandMixin",
+    "FreeCameraHudMixin",
+    "FreeCameraInteractionMixin",
+    "FreeCameraEntityFilterMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  },
+  "overwrites": {
+    "requireAnnotations": true
+  }
+}

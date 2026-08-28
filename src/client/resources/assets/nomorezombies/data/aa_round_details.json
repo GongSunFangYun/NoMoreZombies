@@ -1,0 +1,739 @@
+{
+  "aa_rounds": [
+    {
+      "round": 1,
+      "recommendedSpots": ["windows", "", ""],
+      "hasGiant": false,
+      "hasOldOne": false,
+      "dangerLevel": 1
+    },
+    {
+      "round": 2,
+      "recommendedSpots": ["windows", "", ""],
+      "hasGiant": false,
+      "hasOldOne": false,
+      "dangerLevel": 1
+    },
+    {
+      "round": 3,
+      "recommendedSpots": ["windows", "", ""],
+      "hasGiant": false,
+      "hasOldOne": false,
+      "dangerLevel": 1
+    },
+    {
+      "round": 4,
+      "recommendedSpots": ["windows", "", ""],
+      "hasGiant": false,
+      "hasOldOne": false,
+      "dangerLevel": 1
+    },
+    {
+      "round": 5,
+      "recommendedSpots": ["windows", "", ""],
+      "hasGiant": false,
+      "hasOldOne": false,
+      "dangerLevel": 1
+    },
+    {
+      "round": 6,
+      "recommendedSpots": ["windows", "", ""],
+      "hasGiant": false,
+      "hasOldOne": false,
+      "dangerLevel": 1
+    },
+    {
+      "round": 7,
+      "recommendedSpots": ["windows", "", ""],
+      "hasGiant": false,
+      "hasOldOne": false,
+      "dangerLevel": 1
+    },
+    {
+      "round": 8,
+      "recommendedSpots": ["windows", "", ""],
+      "hasGiant": false,
+      "hasOldOne": false,
+      "dangerLevel": 1
+    },
+    {
+      "round": 9,
+      "recommendedSpots": ["windows", "", ""],
+      "hasGiant": false,
+      "hasOldOne": false,
+      "dangerLevel": 1
+    },
+    {
+      "round": 10,
+      "recommendedSpots": ["mid", "windows", ""],
+      "hasGiant": false,
+      "hasOldOne": false,
+      "dangerLevel": 2
+    },
+    {
+      "round": 11,
+      "recommendedSpots": ["mid", "windows", ""],
+      "hasGiant": false,
+      "hasOldOne": false,
+      "dangerLevel": 2
+    },
+    {
+      "round": 12,
+      "recommendedSpots": ["mid", "windows", ""],
+      "hasGiant": false,
+      "hasOldOne": false,
+      "dangerLevel": 2
+    },
+    {
+      "round": 13,
+      "recommendedSpots": ["mid", "windows", ""],
+      "hasGiant": false,
+      "hasOldOne": false,
+      "dangerLevel": 2
+    },
+    {
+      "round": 14,
+      "recommendedSpots": ["mid", "windows", ""],
+      "hasGiant": false,
+      "hasOldOne": false,
+      "dangerLevel": 2
+    },
+    {
+      "round": 15,
+      "recommendedSpots": ["rc", "cc", ""],
+      "hasGiant": true,
+      "hasOldOne": false,
+      "dangerLevel": 3
+    },
+    {
+      "round": 16,
+      "recommendedSpots": ["mid", "rc", ""],
+      "hasGiant": false,
+      "hasOldOne": false,
+      "dangerLevel": 2
+    },
+    {
+      "round": 17,
+      "recommendedSpots": ["mid", "rc", ""],
+      "hasGiant": false,
+      "hasOldOne": false,
+      "dangerLevel": 2
+    },
+    {
+      "round": 18,
+      "recommendedSpots": ["cc", "", ""],
+      "hasGiant": false,
+      "hasOldOne": false,
+      "dangerLevel": 2
+    },
+    {
+      "round": 19,
+      "recommendedSpots": ["rc", "", ""],
+      "hasGiant": false,
+      "hasOldOne": false,
+      "dangerLevel": 2
+    },
+    {
+      "round": 20,
+      "recommendedSpots": ["rc", "", ""],
+      "hasGiant": true,
+      "hasOldOne": false,
+      "dangerLevel": 3
+    },
+    {
+      "round": 21,
+      "recommendedSpots": ["rc", "mid", ""],
+      "hasGiant": false,
+      "hasOldOne": false,
+      "dangerLevel": 1
+    },
+    {
+      "round": 22,
+      "recommendedSpots": ["rc", "", ""],
+      "hasGiant": true,
+      "hasOldOne": false,
+      "dangerLevel": 3
+    },
+    {
+      "round": 23,
+      "recommendedSpots": ["cc", "", ""],
+      "hasGiant": true,
+      "hasOldOne": false,
+      "dangerLevel": 3
+    },
+    {
+      "round": 24,
+      "recommendedSpots": ["rc", "", ""],
+      "hasGiant": true,
+      "hasOldOne": false,
+      "dangerLevel": 3
+    },
+    {
+      "round": 25,
+      "recommendedSpots": ["mid", "", ""],
+      "hasGiant": false,
+      "hasOldOne": false,
+      "dangerLevel": 1
+    },
+    {
+      "round": 26,
+      "recommendedSpots": ["rc", "pc", "ent"],
+      "hasGiant": false,
+      "hasOldOne": false,
+      "dangerLevel": 2
+    },
+    {
+      "round": 27,
+      "recommendedSpots": ["rc", "mid", ""],
+      "hasGiant": false,
+      "hasOldOne": false,
+      "dangerLevel": 1
+    },
+    {
+      "round": 28,
+      "recommendedSpots": ["rc", "", ""],
+      "hasGiant": true,
+      "hasOldOne": false,
+      "dangerLevel": 3
+    },
+    {
+      "round": 29,
+      "recommendedSpots": ["pc", "", ""],
+      "hasGiant": false,
+      "hasOldOne": false,
+      "dangerLevel": 3
+    },
+    {
+      "round": 30,
+      "recommendedSpots": ["rc", "", ""],
+      "hasGiant": true,
+      "hasOldOne": false,
+      "dangerLevel": 4
+    },
+    {
+      "round": 31,
+      "recommendedSpots": ["pc", "", ""],
+      "hasGiant": false,
+      "hasOldOne": false,
+      "dangerLevel": 2
+    },
+    {
+      "round": 32,
+      "recommendedSpots": ["rc", "", ""],
+      "hasGiant": false,
+      "hasOldOne": false,
+      "dangerLevel": 1
+    },
+    {
+      "round": 33,
+      "recommendedSpots": ["pc", "cc", ""],
+      "hasGiant": false,
+      "hasOldOne": false,
+      "dangerLevel": 2
+    },
+    {
+      "round": 34,
+      "recommendedSpots": ["pc", "cc", ""],
+      "hasGiant": false,
+      "hasOldOne": false,
+      "dangerLevel": 3
+    },
+    {
+      "round": 35,
+      "recommendedSpots": ["mid", "", ""],
+      "hasGiant": false,
+      "hasOldOne": false,
+      "dangerLevel": 1
+    },
+    {
+      "round": 36,
+      "recommendedSpots": ["rc", "", ""],
+      "hasGiant": true,
+      "hasOldOne": false,
+      "dangerLevel": 5
+    },
+    {
+      "round": 37,
+      "recommendedSpots": ["rc", "", ""],
+      "hasGiant": true,
+      "hasOldOne": false,
+      "dangerLevel": 3
+    },
+    {
+      "round": 38,
+      "recommendedSpots": ["rc", "", ""],
+      "hasGiant": true,
+      "hasOldOne": false,
+      "dangerLevel": 3
+    },
+    {
+      "round": 39,
+      "recommendedSpots": ["cc", "", ""],
+      "hasGiant": true,
+      "hasOldOne": false,
+      "dangerLevel": 4
+    },
+    {
+      "round": 40,
+      "recommendedSpots": ["rc", "", ""],
+      "hasGiant": true,
+      "hasOldOne": true,
+      "dangerLevel": 5
+    },
+    {
+      "round": 41,
+      "recommendedSpots": ["rc", "", ""],
+      "hasGiant": true,
+      "hasOldOne": false,
+      "dangerLevel": 3
+    },
+    {
+      "round": 42,
+      "recommendedSpots": ["rc", "cc", ""],
+      "hasGiant": true,
+      "hasOldOne": false,
+      "dangerLevel": 5
+    },
+    {
+      "round": 43,
+      "recommendedSpots": ["cc", "", ""],
+      "hasGiant": true,
+      "hasOldOne": false,
+      "dangerLevel": 4
+    },
+    {
+      "round": 44,
+      "recommendedSpots": ["rc", "cc", ""],
+      "hasGiant": true,
+      "hasOldOne": false,
+      "dangerLevel": 4
+    },
+    {
+      "round": 45,
+      "recommendedSpots": ["ult", "rc", ""],
+      "hasGiant": true,
+      "hasOldOne": true,
+      "dangerLevel": 5
+    },
+    {
+      "round": 46,
+      "recommendedSpots": ["cc", "sgPlatform", ""],
+      "hasGiant": false,
+      "hasOldOne": true,
+      "dangerLevel": 3
+    },
+    {
+      "round": 47,
+      "recommendedSpots": ["cc", "", ""],
+      "hasGiant": true,
+      "hasOldOne": false,
+      "dangerLevel": 3
+    },
+    {
+      "round": 48,
+      "recommendedSpots": ["rc", "", ""],
+      "hasGiant": false,
+      "hasOldOne": true,
+      "dangerLevel": 4
+    },
+    {
+      "round": 49,
+      "recommendedSpots": ["alt", "", ""],
+      "hasGiant": false,
+      "hasOldOne": false,
+      "dangerLevel": 5
+    },
+    {
+      "round": 50,
+      "recommendedSpots": ["ult", "cc", "alt"],
+      "hasGiant": true,
+      "hasOldOne": false,
+      "dangerLevel": 5
+    },
+    {
+      "round": 51,
+      "recommendedSpots": ["door", "cc", "oppperk"],
+      "hasGiant": true,
+      "hasOldOne": false,
+      "dangerLevel": 3
+    },
+    {
+      "round": 52,
+      "recommendedSpots": ["cc", "", ""],
+      "hasGiant": true,
+      "hasOldOne": false,
+      "dangerLevel": 3
+    },
+    {
+      "round": 53,
+      "recommendedSpots": ["ult", "alt", "cc"],
+      "hasGiant": true,
+      "hasOldOne": false,
+      "dangerLevel": 4
+    },
+    {
+      "round": 54,
+      "recommendedSpots": ["ult", "alt", "cc"],
+      "hasGiant": true,
+      "hasOldOne": true,
+      "dangerLevel": 5
+    },
+    {
+      "round": 55,
+      "recommendedSpots": ["alt", "ult", "rc"],
+      "hasGiant": true,
+      "hasOldOne": true,
+      "dangerLevel": 5
+    },
+    {
+      "round": 56,
+      "recommendedSpots": ["mid", "", ""],
+      "hasGiant": false,
+      "hasOldOne": false,
+      "dangerLevel": 1
+    },
+    {
+      "round": 57,
+      "recommendedSpots": ["mid", "", ""],
+      "hasGiant": false,
+      "hasOldOne": false,
+      "dangerLevel": 1
+    },
+    {
+      "round": 58,
+      "recommendedSpots": ["ult", "alt", "cc"],
+      "hasGiant": true,
+      "hasOldOne": true,
+      "dangerLevel": 5
+    },
+    {
+      "round": 59,
+      "recommendedSpots": ["sgPlatform", "cc", ""],
+      "hasGiant": false,
+      "hasOldOne": true,
+      "dangerLevel": 3
+    },
+    {
+      "round": 60,
+      "recommendedSpots": ["ult", "pc", ""],
+      "hasGiant": false,
+      "hasOldOne": true,
+      "dangerLevel": 4
+    },
+    {
+      "round": 61,
+      "recommendedSpots": ["ult", "alt", "cc"],
+      "hasGiant": false,
+      "hasOldOne": false,
+      "dangerLevel": 3
+    },
+    {
+      "round": 62,
+      "recommendedSpots": ["ult", "rc", ""],
+      "hasGiant": false,
+      "hasOldOne": false,
+      "dangerLevel": 3
+    },
+    {
+      "round": 63,
+      "recommendedSpots": ["ult", "rc", ""],
+      "hasGiant": false,
+      "hasOldOne": false,
+      "dangerLevel": 4
+    },
+    {
+      "round": 64,
+      "recommendedSpots": ["ult", "alt", "cc"],
+      "hasGiant": false,
+      "hasOldOne": true,
+      "dangerLevel": 4
+    },
+    {
+      "round": 65,
+      "recommendedSpots": ["ult", "alt", "cc"],
+      "hasGiant": true,
+      "hasOldOne": false,
+      "dangerLevel": 5
+    },
+    {
+      "round": 66,
+      "recommendedSpots": ["ult", "bumper", "rc"],
+      "hasGiant": false,
+      "hasOldOne": false,
+      "dangerLevel": 3
+    },
+    {
+      "round": 67,
+      "recommendedSpots": ["ult", "alt", "cc"],
+      "hasGiant": false,
+      "hasOldOne": true,
+      "dangerLevel": 4
+    },
+    {
+      "round": 68,
+      "recommendedSpots": ["ult", "", ""],
+      "hasGiant": false,
+      "hasOldOne": true,
+      "dangerLevel": 4
+    },
+    {
+      "round": 69,
+      "recommendedSpots": ["ult", "alt", ""],
+      "hasGiant": false,
+      "hasOldOne": true,
+      "dangerLevel": 4
+    },
+    {
+      "round": 70,
+      "recommendedSpots": ["ult", "", ""],
+      "hasGiant": true,
+      "hasOldOne": true,
+      "dangerLevel": 5
+    },
+    {
+      "round": 71,
+      "recommendedSpots": ["ult", "alt", "cc"],
+      "hasGiant": false,
+      "hasOldOne": false,
+      "dangerLevel": 3
+    },
+    {
+      "round": 72,
+      "recommendedSpots": ["ult", "rc", ""],
+      "hasGiant": false,
+      "hasOldOne": false,
+      "dangerLevel": 3
+    },
+    {
+      "round": 73,
+      "recommendedSpots": ["ult", "rc", ""],
+      "hasGiant": false,
+      "hasOldOne": false,
+      "dangerLevel": 4
+    },
+    {
+      "round": 74,
+      "recommendedSpots": ["ult", "alt", "cc"],
+      "hasGiant": false,
+      "hasOldOne": true,
+      "dangerLevel": 4
+    },
+    {
+      "round": 75,
+      "recommendedSpots": ["ult", "alt", "cc"],
+      "hasGiant": true,
+      "hasOldOne": false,
+      "dangerLevel": 5
+    },
+    {
+      "round": 76,
+      "recommendedSpots": ["ult", "bumper", "rc"],
+      "hasGiant": false,
+      "hasOldOne": false,
+      "dangerLevel": 3
+    },
+    {
+      "round": 77,
+      "recommendedSpots": ["ult", "alt", "cc"],
+      "hasGiant": false,
+      "hasOldOne": true,
+      "dangerLevel": 4
+    },
+    {
+      "round": 78,
+      "recommendedSpots": ["ult", "", ""],
+      "hasGiant": false,
+      "hasOldOne": true,
+      "dangerLevel": 4
+    },
+    {
+      "round": 79,
+      "recommendedSpots": ["ult", "alt", ""],
+      "hasGiant": false,
+      "hasOldOne": true,
+      "dangerLevel": 4
+    },
+    {
+      "round": 80,
+      "recommendedSpots": ["ult", "", ""],
+      "hasGiant": true,
+      "hasOldOne": true,
+      "dangerLevel": 5
+    },
+    {
+      "round": 81,
+      "recommendedSpots": ["ult", "alt", "cc"],
+      "hasGiant": false,
+      "hasOldOne": false,
+      "dangerLevel": 3
+    },
+    {
+      "round": 82,
+      "recommendedSpots": ["ult", "rc", ""],
+      "hasGiant": false,
+      "hasOldOne": false,
+      "dangerLevel": 3
+    },
+    {
+      "round": 83,
+      "recommendedSpots": ["ult", "rc", ""],
+      "hasGiant": false,
+      "hasOldOne": false,
+      "dangerLevel": 4
+    },
+    {
+      "round": 84,
+      "recommendedSpots": ["ult", "alt", "cc"],
+      "hasGiant": false,
+      "hasOldOne": true,
+      "dangerLevel": 4
+    },
+    {
+      "round": 85,
+      "recommendedSpots": ["ult", "alt", "cc"],
+      "hasGiant": true,
+      "hasOldOne": false,
+      "dangerLevel": 5
+    },
+    {
+      "round": 86,
+      "recommendedSpots": ["ult", "bumper", "rc"],
+      "hasGiant": false,
+      "hasOldOne": false,
+      "dangerLevel": 3
+    },
+    {
+      "round": 87,
+      "recommendedSpots": ["ult", "alt", "cc"],
+      "hasGiant": false,
+      "hasOldOne": true,
+      "dangerLevel": 4
+    },
+    {
+      "round": 88,
+      "recommendedSpots": ["ult", "", ""],
+      "hasGiant": false,
+      "hasOldOne": true,
+      "dangerLevel": 4
+    },
+    {
+      "round": 89,
+      "recommendedSpots": ["ult", "alt", ""],
+      "hasGiant": false,
+      "hasOldOne": true,
+      "dangerLevel": 4
+    },
+    {
+      "round": 90,
+      "recommendedSpots": ["ult", "", ""],
+      "hasGiant": true,
+      "hasOldOne": true,
+      "dangerLevel": 5
+    },
+    {
+      "round": 91,
+      "recommendedSpots": ["ult", "alt", "cc"],
+      "hasGiant": false,
+      "hasOldOne": false,
+      "dangerLevel": 3
+    },
+    {
+      "round": 92,
+      "recommendedSpots": ["ult", "rc", ""],
+      "hasGiant": false,
+      "hasOldOne": false,
+      "dangerLevel": 3
+    },
+    {
+      "round": 93,
+      "recommendedSpots": ["ult", "rc", ""],
+      "hasGiant": false,
+      "hasOldOne": false,
+      "dangerLevel": 4
+    },
+    {
+      "round": 94,
+      "recommendedSpots": ["ult", "alt", "cc"],
+      "hasGiant": false,
+      "hasOldOne": true,
+      "dangerLevel": 4
+    },
+    {
+      "round": 95,
+      "recommendedSpots": ["ult", "alt", "cc"],
+      "hasGiant": true,
+      "hasOldOne": false,
+      "dangerLevel": 5
+    },
+    {
+      "round": 96,
+      "recommendedSpots": ["ult", "bumper", "rc"],
+      "hasGiant": false,
+      "hasOldOne": false,
+      "dangerLevel": 3
+    },
+    {
+      "round": 97,
+      "recommendedSpots": ["ult", "alt", "cc"],
+      "hasGiant": false,
+      "hasOldOne": true,
+      "dangerLevel": 4
+    },
+    {
+      "round": 98,
+      "recommendedSpots": ["ult", "", ""],
+      "hasGiant": false,
+      "hasOldOne": true,
+      "dangerLevel": 4
+    },
+    {
+      "round": 99,
+      "recommendedSpots": ["ult", "alt", ""],
+      "hasGiant": false,
+      "hasOldOne": true,
+      "dangerLevel": 4
+    },
+    {
+      "round": 100,
+      "recommendedSpots": ["ult", "", ""],
+      "hasGiant": true,
+      "hasOldOne": true,
+      "dangerLevel": 5
+    },
+    {
+      "round": 101,
+      "recommendedSpots": ["mid", "", ""],
+      "hasGiant": false,
+      "hasOldOne": false,
+      "dangerLevel": 5
+    },
+    {
+      "round": 102,
+      "recommendedSpots": ["", "", ""],
+      "hasGiant": false,
+      "hasOldOne": true,
+      "dangerLevel": 1
+    },
+    {
+      "round": 103,
+      "recommendedSpots": ["", "", ""],
+      "hasGiant": false,
+      "hasOldOne": true,
+      "dangerLevel": 1
+    },
+    {
+      "round": 104,
+      "recommendedSpots": ["", "", ""],
+      "hasGiant": false,
+      "hasOldOne": true,
+      "dangerLevel": 1
+    },
+    {
+      "round": 105,
+      "recommendedSpots": ["", "", ""],
+      "hasGiant": false,
+      "hasOldOne": true,
+      "dangerLevel": 1
+    }
+  ]
+}

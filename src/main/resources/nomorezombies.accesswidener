@@ -1,0 +1,5 @@
+accessWidener v2 named
+
+# RenderLayer.MultiPhase 是包私有类，@Invoker 无法声明其返回类型。
+# 放宽为 public 后，RenderLayerAccessor 才能返回精确类型、被 Mixin 匹配到。
+accessible class net/minecraft/client/render/RenderLayer$MultiPhase

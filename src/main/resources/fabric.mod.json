@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "id": "nomorezombies",
+  "version": "${version}",
+  "name": "NoMoreZombies",
+  "description": "More Features, Fewer Zombies!",
+  "authors": [
+    "GongSunFangYun"
+  ],
+  "contact": {
+    "sources": "https://github.com/GongSunFangYun/NoMoreZombies",
+    "issues": "https://github.com/GongSunFangYun/NoMoreZombies/issues"
+  },
+  "license": "LGPL-3.0-only",
+  "icon": "icon.png",
+  "environment": "client",
+  "accessWidener": "nomorezombies.accesswidener",
+  "entrypoints": {
+    "client": [
+      "cn.gsfy.nmz.client.NoMoreZombiesClient"
+    ],
+    "main": [
+      "cn.gsfy.nmz.NoMoreZombies"
+    ],
+    "modmenu": [
+      "cn.gsfy.nmz.client.config.ModMenuApi"
+    ]
+  },
+  "mixins": [
+    "nomorezombies.mixins.json",
+    {
+      "config": "nomorezombies.client.mixins.json",
+      "environment": "client"
+    }
+  ],
+  "depends": {
+    "fabricloader": ">=${loader_version}",
+    "fabric-api": "*",
+    "minecraft": "${minecraft_version}",
+    "malilib": ">=0.23.5"
+  }
+}
