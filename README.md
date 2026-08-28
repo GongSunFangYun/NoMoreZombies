@@ -1,4 +1,19 @@
-# NoMoreZombies - User Guide
+<div align="center">
+
+<img src="src/main/resources/icon.png" alt="Logo" width="160" height="160">
+
+# NoMoreZombies - Hypixel Zombies Assistant Mod
+
+[English](README.md) | [简体中文](README_ZHT.md)
+
+[![GitHub release](https://img.shields.io/github/v/release/GongSunFangYun/NoMoreZombies?style=flat-square)]()
+[![Downloads](https://img.shields.io/github/downloads/GongSunFangYun/NoMoreZombies/total?style=flat-square)]()
+[![Stars](https://img.shields.io/github/stars/GongSunFangYun/NoMoreZombies?style=flat-square)]()
+[![Forks](https://img.shields.io/github/forks/GongSunFangYun/NoMoreZombies?style=flat-square)]()
+[![Issues](https://img.shields.io/github/issues/GongSunFangYun/NoMoreZombies?style=flat-square)]()
+[![License](https://img.shields.io/github/license/GongSunFangYun/NoMoreZombies?style=flat-square)]()
+
+</div>
 
 NoMoreZombies is a **client-side** Fabric mod for **Minecraft 1.21.4** that assists you in the **Hypixel Zombies** minigame. It reads only what your client can already see (chat, scoreboard, titles, world sounds, and entity metadata) and changes nothing on the server side.
 
