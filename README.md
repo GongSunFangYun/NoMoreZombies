@@ -2,7 +2,7 @@
 
 <img src="src/main/resources/icon.png" alt="Logo" width="160" height="160">
 
-# NoMoreZombies - Hypixel Zombies Assistant Mod
+# NoMoreZombies — Hypixel Zombies Assistant Mod
 
 [English](README.md) | [简体中文](README_ZHS.md)
 
@@ -15,97 +15,104 @@
 
 </div>
 
-NoMoreZombies is a **client-side** Fabric mod for **Minecraft 1.21.4** that assists you in the **Hypixel Zombies** minigame. It reads only what your client can already see (chat, scoreboard, titles, world sounds, and entity metadata) and changes nothing on the server side.
+NoMoreZombies is a Fabric mod for Minecraft 1.21.4. It operates entirely on the client side. Its functionality is limited to reading data already received by the client—chat messages, scoreboard, titles, world sounds, and entity metadata. The mod does not send any packets to the server, nor does it modify any server-side state.
 
-The interface and all messages are **bilingual (Chinese / English)** and follow your client language automatically.
+All UI elements and messages are available in both Chinese and English; the display language is determined by the client's language setting.
 
 ---
 
 ## Disclaimer
 
-- **Client-side only.** NoMoreZombies reads only what your client already receives (chat, scoreboard, titles, world sounds, and entity metadata). It never modifies the server, never sends packets, and changes nothing other players can see.
-- **Server rules and ban risk.** Depending on the server's rules, some features in this mod (for example, the through-wall ESP) may be considered cheating. Using the mod may result in warnings or account bans. You are solely responsible for how and where you use it.
-- **Use at your own risk.** The mod is provided "as is" without warranty of any kind. The author is not liable for any loss or damage arising from its use.
-- **Not affiliated.** This mod is not affiliated with, endorsed by, or associated with Hypixel Inc., Mojang Studios, or Microsoft.
-- **No anti-cheat guarantee.** The mod does not try to evade server anti-cheat; some features may be detectable. No claim is made that any particular feature is safe or undetectable.
+- **Client-side only.** NoMoreZombies reads only data already received by the client (chat, scoreboard, titles, world sounds, and entity metadata). The mod does not modify server data, send packets, or affect what other players see or how the server logic operates.
+- **Server rules and ban risk.** Different servers have different policies regarding third-party tools. Some features of this mod—such as through-wall ESP—may be considered disallowed on certain servers. Use of this mod may result in warnings or account suspensions. Users are solely responsible for evaluating the risk and bearing any consequences.
+- **Provided as-is.** This mod is provided "as is" without any express or implied warranty. The author assumes no liability for any direct or indirect damages arising from its use.
+- **No affiliation.** This mod is not affiliated with, endorsed by, or associated with Hypixel Inc., Mojang Studios, or Microsoft.
+- **Anti-cheat detection.** This mod does not attempt to evade server-side anti-cheat systems. No guarantee is made regarding the detectability or safety of any specific feature.
 
 ---
 
-## Feature Overview
+## Feature List
 
-### Round Timing
-- A spawn-countdown table for every wave of the current round, with the next wave highlighted.
-- Optional per-map wave spawn sound alerts, plus a 3-2-1 countdown before the final wave.
-- A color alert on boss waves in Alien Arcadium.
+### Wave Timing
+- Displays a table of spawn times for each wave in the current round, with the next wave highlighted.
+- Per-map configurable wave spawn sound alerts; plays a 3-2-1 countdown before the final wave.
+- On the Alien Arcadium map, boss waves are indicated with a color change.
 
 ### Powerup Tracker
-- Detects powerups through three redundant channels (armor stand scanning, entity metadata, and chat activation).
-- Locks onto the map's powerup pattern after the first observation and predicts the refresh round.
-- Drop and pickup notifications, plus an on-screen timer showing how long a powerup has been active and how long until the next one.
+- Detects powerups through three independent channels: armor stand scanning, entity metadata parsing, and chat message matching.
+- After the first observation, automatically identifies the map's powerup spawn pattern and predicts subsequent spawn rounds.
+- Provides drop and pickup notifications; an on-screen timer shows the remaining duration of the active powerup and the countdown to the next spawn.
 
-### Team Stats
-- A scoreboard-style HUD in the top-left showing each teammate's health, status (in combat / downed / dead / left), kills, downs, deaths, and gold.
-- Data is cached to a local file so it survives a quick rejoin.
+### Team Stats Panel
+- Displays a scoreboard-style HUD in the top-left corner showing each teammate's health, status (in combat / downed / dead / left), kills, downs, deaths, and gold.
+- Statistics are cached to a local file and restored automatically after reconnection.
 
 ### Game Timer HUD
-- Total game time and current-round time, frozen at the value shown when the game ends (win or wipe).
+- Displays total game time and elapsed time of the current round. When the game ends (win or wipe), the displayed values freeze and no longer update.
 
 ### Round Records (RKPM)
-- Per-round time and kill totals, summarized in chat at the end of each round, with **RKPM** (round kills per minute = net kills x 60 / round seconds). Click the message to copy it.
+- At the end of each round, outputs the round duration, total kills, and RKPM (round kills per minute = net kills × 60 / round seconds) to chat. Clicking the message copies its content.
 
 ### Player Stats Query
-- With a Hypixel API key configured, query the Zombies stats of any player (by name or UUID) or of your current teammates automatically each round.
+- With a configured Hypixel API key, supports querying Zombies stats for any player by name or UUID. Can also automatically query stats for current teammates at the start of each round.
 
-### Chat Filter & Sidebar
-- Hide noisy chat lines (gold pickups, window repairs, hit confirmations, lucky chests, opened areas, player joins/leaves).
-- Clean up the Hypixel sidebar: strip empty lines and player rows, and remove the vanilla time line when the timer HUD is on.
+### Chat Filter and Sidebar Optimization
+- Filters out the following types of chat messages: gold pickups, window repairs, hit confirmations, lucky chests, area unlocks, and player joins/leaves.
+- Cleans up the Hypixel sidebar: removes empty lines and player rows; removes the native time row when the timer HUD is enabled.
 
 ### Entity ESP
-- Outline boxes for teammates (green, yellow when downed), zombies and other hostiles (red), and spawned powerups (white).
-- Each ESP type has its own toggle and a **render mode**: **Normal** (respects occlusion, hidden behind walls) or **Through walls** (visible through obstacles).
-- A global **through-wall render distance** slider (5-200 blocks) controls how far the through-wall effect reaches.
+- Draws bounding boxes for the following entities: teammates (green for active, yellow for downed), zombies and hostile mobs (red), and spawned powerups (white).
+- Each ESP category can be toggled independently and configured with two rendering modes:
+  - **Normal mode:** respects occlusion—entities behind walls are not visible.
+  - **Through-wall mode:** ignores occlusion—entities remain visible regardless of obstacles.
+- Provides a global through-wall render distance slider, range 5 to 200 blocks, controlling the effective range of through-wall mode.
 
 ### Zombie Health Bar
-- A world-space health bar above each hostile mob (`[#######------] 12/20HP`), colored by remaining health.
+- Displays a world-space health bar above each hostile mob, formatted as `[#######------] 12/20HP`. The color changes based on the remaining health percentage.
 
-### AA Auto Commander
-- On Alien Arcadium, a round-command HUD (giant spawn, elder spawn, difficulty, recommended points) plus an automatic chat broadcast at the start of each round.
+### Alien Arcadium Auto Commander
+- On the Alien Arcadium map, displays round command information: giant spawn, elder spawn, difficulty level, and recommended hold position.
+- Automatically sends a command message to chat at the start of each round.
 
 ### Lightning Rod Cooldown HUD
-- On Alien Arcadium, a 4-slot HUD tracking each lightning rod's 20-second cooldown, colored by remaining time.
+- On the Alien Arcadium map, displays a four-slot HUD tracking each lightning rod's 20-second cooldown. The color of each slot changes according to the remaining cooldown time.
 
-### QoL Toolkit
-- **Smooth zoom** (key-based, with scroll-wheel fine tuning, easing curves, and sensitivity compensation).
+### QoL Toolset
+- **Smooth zoom:** key-triggered, scroll wheel fine-tuning, easing curves, and sensitivity compensation.
 - **Always sneak** / **always sprint** / **gamma override** (forced brightness).
-- **Free camera** (detach the camera from your body to scout around).
-- **Hide nearby players** (translucent so they don't block your view).
-- **Hide the vanilla boss bar** and **the vanilla scoreboard**.
-- **Right-click fires only** (blocks non-firing right-click interactions).
-- **No gun-fire particles** and **no fire overlay**.
-- **CPS counter** (left/right clicks per second).
+- **Free camera:** detaches the camera from the player model for unobstructed observation.
+- **Hide nearby players:** makes nearby player models semi-transparent to reduce visual obstruction.
+- **Hide vanilla boss bar** and **hide vanilla scoreboard**.
+- **Right-click to fire only:** blocks non-firing right-click interactions.
+- **Disable gun-fire particles** and **disable fire overlay**.
+- **CPS counter:** displays left-click and right-click clicks per second.
 
 ### HUD Editor
-- Drag, scale, and toggle each of the HUD elements individually from the config screen.
+- In the configuration screen, each HUD element can be individually dragged, scaled, and toggled.
 
 ---
 
 ## Installation
 
-1. Install **Fabric Loader 0.16.14** and create a **1.21.4** instance.
-2. Put `NoMoreZombies-pre-release-0.1.jar` into your `mods/` folder.
-3. Dependencies (install alongside):
-   - **Fabric API**
-   - **MaLiLib** (external dependency, install it separately)
+1. Install Fabric Loader 0.16.14 and create a Minecraft 1.21.4 game instance.
+2. Place `NoMoreZombies-pre-release-0.1.jar` into the `mods/` folder.
+3. Install the following dependencies (also placed in `mods/`):
+   - Fabric API
+   - MaLiLib
+
+---
 
 ## Configuration
 
-- Open the config from ModMenu (NoMoreZombies > Config, if you are installed it), or press the default hotkey **Z+X**.
-- Every feature toggle is **off by default** (Tweakeroo-style). Bind a hotkey to any toggle in the config screen to flip it in-game instantly.
-- The config file is `config/nomorezombies.json` (plain text, editable by hand).
-- Data tables (wave times, powerup patterns) hot-reload with **F3+T** in-game.
+- Open the configuration screen via ModMenu (NoMoreZombies > Config), or use the default hotkey **Z + X**.
+- All feature toggles are disabled by default. Hotkeys can be bound to any toggle in the config screen for in-game switching.
+- The configuration file is located at `config/nomorezombies.json` and is stored in plain JSON format, editable manually.
+- Data tables (wave timing, powerup spawn patterns) support hot-reload in-game via **F3 + T**.
+
+---
 
 ## Notes
 
-- This mod is purely client-side: it never modifies the server, sends no packets, and changes nothing other players can see.
-- It is designed for the global Hypixel Zombies community; all parsing and messages accept both Chinese and English game text.
-- If you have a bug report or a feature request, describe what you were doing and what appeared in the log when it happened.
+- This mod is client-side only. It does not modify server data, send packets, or affect other players' game experience or server logic.
+- Text parsing and message output are compatible with both Chinese and English in-game languages.
+- When submitting bug reports or feature requests, please describe the steps to reproduce and include the relevant log output.
