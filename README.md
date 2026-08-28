@@ -6,6 +6,16 @@ The interface and all messages are **bilingual (Chinese / English)** and follow 
 
 ---
 
+## Disclaimer
+
+- **Client-side only.** NoMoreZombies reads only what your client already receives (chat, scoreboard, titles, world sounds, and entity metadata). It never modifies the server, never sends packets, and changes nothing other players can see.
+- **Server rules and ban risk.** Depending on the server's rules, some features in this mod (for example, the through-wall ESP) may be considered cheating. Using the mod may result in warnings or account bans. You are solely responsible for how and where you use it.
+- **Use at your own risk.** The mod is provided "as is" without warranty of any kind. The author is not liable for any loss or damage arising from its use.
+- **Not affiliated.** This mod is not affiliated with, endorsed by, or associated with Hypixel Inc., Mojang Studios, or Microsoft.
+- **No anti-cheat guarantee.** The mod does not try to evade server anti-cheat; some features may be detectable. No claim is made that any particular feature is safe or undetectable.
+
+---
+
 ## Feature Overview
 
 ### Round Timing
