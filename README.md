@@ -108,5 +108,5 @@ The interface and all messages are **bilingual (Chinese / English)** and follow 
 ## Notes
 
 - This mod is purely client-side: it never modifies the server, sends no packets, and changes nothing other players can see.
-- It is designed for the Chinese Hypixel Zombies community; all parsing and messages accept both Chinese and English game text.
+- It is designed for the Global Hypixel Zombies community; all parsing and messages accept both Chinese and English game text.
 - If you have a bug report or a feature request, describe what you were doing and what appeared in the log when it happened.
