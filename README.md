@@ -17,19 +17,23 @@
 
 NoMoreZombies is a Fabric mod for Minecraft 1.21.4. It operates entirely on the client side. Its functionality is limited to reading data already received by the client—chat messages, scoreboard, titles, world sounds, and entity metadata. The mod does not send any packets to the server, nor does it modify any server-side state.
 
-All features are strictly gated to the Hypixel Zombies minigame. Outside a Zombies game, none of the mod's features are active.
+This mod is still in early testing, so there may be a lot of undiscovered bugs. If you find any, please be sure to submit issues, and I'll fix them all when I have some free time.
+
+All features are strictly gated to the Zombies game mode. In any other game mode, every feature is fully disabled and has no effect.
 
 All UI elements and messages are available in both Chinese and English; the display language is determined by the client's language setting.
+
+[](examples\example_2.png)
 
 ---
 
 ## Disclaimer
 
-- **Client-side only.** NoMoreZombies reads only data already received by the client (chat, scoreboard, titles, world sounds, and entity metadata). The mod does not modify server data, send packets, or affect what other players see or how the server logic operates.
-- **Server rules and ban risk.** Different servers have different policies regarding third-party tools. Some features of this mod—such as through-wall ESP—may be considered disallowed on certain servers. Use of this mod may result in warnings or account suspensions. Users are solely responsible for evaluating the risk and bearing any consequences.
-- **Provided as-is.** This mod is provided "as is" without any express or implied warranty. The author assumes no liability for any direct or indirect damages arising from its use.
-- **No affiliation.** This mod is not affiliated with, endorsed by, or associated with Hypixel Inc., Mojang Studios, or Microsoft.
-- **Anti-cheat detection.** This mod does not attempt to evade server-side anti-cheat systems. No guarantee is made regarding the detectability or safety of any specific feature.
+- **Client-side only: ** NoMoreZombies reads only data already received by the client (chat, scoreboard, titles, world sounds, and entity metadata). The mod does not modify server data, send packets, or affect what other players see or how the server logic operates.
+- **Server rules and ban risk: ** Different servers have different policies regarding third-party tools. Some features of this mod—such as through-wall ESP—may be considered disallowed on certain servers. Use of this mod may result in warnings or account suspensions. Users are solely responsible for evaluating the risk and bearing any consequences.
+- **Provided as-is: ** This mod is provided "as is" without any express or implied warranty. The author assumes no liability for any direct or indirect damages arising from its use.
+- **No affiliation: ** This mod is not affiliated with, endorsed by, or associated with Hypixel Inc., Mojang Studios, or Microsoft.
+- **Anti-cheat detection: ** This mod does not attempt to evade server-side anti-cheat systems. No guarantee is made regarding the detectability or safety of any specific feature.
 
 ---
 
