@@ -4,7 +4,7 @@
 
 # NoMoreZombies - Hypixel Zombies 辅助模组
 
-[English](README.md) | [简体中文](README_ZHT.md)
+[English](README.md) | [简体中文](README_ZHS.md)
 
 [![GitHub release](https://img.shields.io/github/v/release/GongSunFangYun/NoMoreZombies?style=flat-square)]()
 [![Downloads](https://img.shields.io/github/downloads/GongSunFangYun/NoMoreZombies/total?style=flat-square)]()
