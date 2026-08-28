@@ -116,3 +116,18 @@ NoMoreZombies 是一个 Fabric 模组，运行于 Minecraft 1.21.4，仅作用�
 - 本模组为纯客户端模组，不修改服务端数据，不发送数据包，不影响其他玩家的游戏画面或服务端逻辑。
 - 文本解析与消息输出兼容中英文两种游戏语言环境。
 - 提交 Bug 报告或功能建议时，请描述操作步骤并提供对应的日志内容。
+
+---
+
+## 参考声明
+
+本模组的部分主要功能实现参考了以下项目：
+- [ShowSpawnTime](https://github.com/Seosean/ShowSpawnTime)
+- [NotEnoughZombies](https://github.com/PingIsFun/NotEnoughZombies)
+- [Hypixel-Zombies-Mod](https://github.com/FairCauth/Hypixel-Zombies-Mod)
+
+本模组的部分次要功能实现参考了以下项目：
+- [Zoomify](https://github.com/isXander/Zoomify)
+- [tweakeroo](https://github.com/maruohon/tweakeroo)
+
+本模组并未直接引用以上项目的代码，仅进行功能参考并自行实现逻辑。

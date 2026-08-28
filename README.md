@@ -116,3 +116,18 @@ All UI elements and messages are available in both Chinese and English; the disp
 - This mod is client-side only. It does not modify server data, send packets, or affect other players' game experience or server logic.
 - Text parsing and message output are compatible with both Chinese and English in-game languages.
 - When submitting bug reports or feature requests, please describe the steps to reproduce and include the relevant log output.
+
+---
+
+## References
+
+Some of the primary features of this mod are implemented with reference to the following projects:
+- [ShowSpawnTime](https://github.com/Seosean/ShowSpawnTime)
+- [NotEnoughZombies](https://github.com/PingIsFun/NotEnoughZombies)
+- [Hypixel-Zombies-Mod](https://github.com/FairCauth/Hypixel-Zombies-Mod)
+
+Some of the secondary features are implemented with reference to the following projects:
+- [Zoomify](https://github.com/isXander/Zoomify)
+- [tweakeroo](https://github.com/maruohon/tweakeroo)
+
+This mod does not copy any code directly from these projects. It only references their functionality and implements the logic independently.
