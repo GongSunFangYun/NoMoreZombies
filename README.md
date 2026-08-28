@@ -17,6 +17,8 @@
 
 NoMoreZombies is a Fabric mod for Minecraft 1.21.4. It operates entirely on the client side. Its functionality is limited to reading data already received by the client—chat messages, scoreboard, titles, world sounds, and entity metadata. The mod does not send any packets to the server, nor does it modify any server-side state.
 
+All features are strictly gated to the Hypixel Zombies minigame. Outside a Zombies game, none of the mod's features are active.
+
 All UI elements and messages are available in both Chinese and English; the display language is determined by the client's language setting.
 
 ---
