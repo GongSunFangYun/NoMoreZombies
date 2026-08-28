@@ -100,7 +100,7 @@ The interface and all messages are **bilingual (Chinese / English)** and follow 
 
 ## Configuration
 
-- Open the config from ModMenu (NoMoreZombies > Config), or press the default hotkey **Z+X**.
+- Open the config from ModMenu (NoMoreZombies > Config, if you are installed it), or press the default hotkey **Z+X**.
 - Every feature toggle is **off by default** (Tweakeroo-style). Bind a hotkey to any toggle in the config screen to flip it in-game instantly.
 - The config file is `config/nomorezombies.json` (plain text, editable by hand).
 - Data tables (wave times, powerup patterns) hot-reload with **F3+T** in-game.
@@ -108,5 +108,5 @@ The interface and all messages are **bilingual (Chinese / English)** and follow 
 ## Notes
 
 - This mod is purely client-side: it never modifies the server, sends no packets, and changes nothing other players can see.
-- It is designed for the Global Hypixel Zombies community; all parsing and messages accept both Chinese and English game text.
+- It is designed for the global Hypixel Zombies community; all parsing and messages accept both Chinese and English game text.
 - If you have a bug report or a feature request, describe what you were doing and what appeared in the log when it happened.
