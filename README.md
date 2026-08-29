@@ -23,7 +23,7 @@ All features are strictly gated to the Zombies mode. In any other game mode, eve
 
 All UI elements and messages are available in both Chinese and English; the display language is determined by the client's language setting.
 
-![Screenshot in AA](https://cdn.modrinth.com/data/cached_images/cae81c56a65f3782452c8eced92aa3afe7a89e10.png)
+![Battle Of AA](https://cdn.modrinth.com/data/cached_images/1ecd2db537000cd24985928098900038a9c1fb35.png)
 
 ---
 
