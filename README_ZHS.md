@@ -23,7 +23,7 @@ NoMoreZombies 是一个 Fabric 模组，运行于 Minecraft 1.21.4，仅作用�
 
 模组界面及所有提示信息均提供中英文两种语言，显示语言由客户端设置决定。
 
-![The HUD editor interface](https://cdn.modrinth.com/data/cached_images/51c9eed6d78ca7606a1ce1cc6143a19e12091005.png)
+![Screenshot in AA](https://cdn.modrinth.com/data/cached_images/cae81c56a65f3782452c8eced92aa3afe7a89e10.png)
 
 ---
 
