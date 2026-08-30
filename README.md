@@ -29,11 +29,11 @@ All UI elements and messages are available in both Chinese and English; the disp
 
 ## Disclaimer
 
-- **Client-side only: ** NoMoreZombies reads only data already received by the client (chat, scoreboard, titles, world sounds, and entity metadata). The mod does not modify server data, send packets, or affect what other players see or how the server logic operates.
-- **Server rules and ban risk: ** Different servers have different policies regarding third-party tools. Some features of this mod—such as through-wall ESP—may be considered disallowed on certain servers. Use of this mod may result in warnings or account suspensions. Users are solely responsible for evaluating the risk and bearing any consequences.
-- **Provided as-is: ** This mod is provided "as is" without any express or implied warranty. The author assumes no liability for any direct or indirect damages arising from its use.
-- **No affiliation: ** This mod is not affiliated with, endorsed by, or associated with Hypixel Inc., Mojang Studios, or Microsoft.
-- **Anti-cheat detection: ** This mod does not attempt to evade server-side anti-cheat systems. No guarantee is made regarding the detectability or safety of any specific feature.
+- **Client-side only:** NoMoreZombies reads only data already received by the client (chat, scoreboard, titles, world sounds, and entity metadata). The mod does not modify server data, send packets, or affect what other players see or how the server logic operates.
+- **Server rules and ban risk:** Different servers have different policies regarding third-party tools. Some features of this mod—such as through-wall ESP—may be considered disallowed on certain servers. Use of this mod may result in warnings or account suspensions. Users are solely responsible for evaluating the risk and bearing any consequences.
+- **Provided as-is:** This mod is provided "as is" without any express or implied warranty. The author assumes no liability for any direct or indirect damages arising from its use.
+- **No affiliation:** This mod is not affiliated with, endorsed by, or associated with Hypixel Inc., Mojang Studios, or Microsoft.
+- **Anti-cheat detection:** This mod does not attempt to evade server-side anti-cheat systems. No guarantee is made regarding the detectability or safety of any specific feature.
 
 ---
 
