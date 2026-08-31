@@ -102,13 +102,39 @@ All UI elements and messages are available in both Chinese and English; the disp
 
 ---
 
+## Supported Maps
+
+Wave-timing tables and powerup spawn patterns are provided for all five Zombies maps:
+
+| Map | Rounds |
+|---|---|
+| Alien Arcadium | 105 |
+| Dead End | 30 |
+| Bad Blood | 30 |
+| The Lab | 40 |
+| Prison | 30 |
+
+Alien Arcadium additionally gets the Auto Commander, the boss-wave color alert, and the Lightning Rod cooldown HUD.
+
+---
+
 ## Installation
 
-1. Install Fabric Loader 0.16.14 and create a Minecraft 1.21.4 game instance.
+1. Install **Fabric Loader 0.16.14** and create a Minecraft 1.21.4 game instance.
 2. Place `NoMoreZombies-pre-release-0.1.jar` into the `mods/` folder.
 3. Install the following dependencies (also placed in `mods/`):
    - Fabric API
    - MaLiLib
+
+### Requirements
+
+| Dependency | Version |
+|---|---|
+| Minecraft | 1.21.4 |
+| Fabric Loader | ≥ 0.16.14 |
+| Fabric API | ≥ 0.119.4 |
+| MaLiLib | ≥ 0.23.5 |
+| ModMenu | 13.0.3 (optional) |
 
 ---
 
@@ -118,6 +144,18 @@ All UI elements and messages are available in both Chinese and English; the disp
 - All feature toggles are disabled by default. Hotkeys can be bound to any toggle in the config screen for in-game switching.
 - The configuration file is located at `config/nomorezombies.json` and is stored in plain JSON format, editable manually.
 - Data tables (wave timing, powerup spawn patterns) support hot-reload in-game via **F3 + T**.
+
+---
+
+## Building from Source
+
+Requirements: **JDK 21**.
+
+```bash
+./gradlew build
+```
+
+The built jar is produced at `build/libs/NoMoreZombies-pre-release-0.1.jar`.
 
 ---
 
@@ -141,3 +179,9 @@ Some of the secondary features are implemented with reference to the following p
 - [tweakeroo](https://github.com/maruohon/tweakeroo)
 
 This mod does not copy any code directly from these projects. It only references their functionality and implements the logic independently.
+
+---
+
+## License
+
+[LGPL-3.0-only](LICENSE) — see the `LICENSE` file for details.

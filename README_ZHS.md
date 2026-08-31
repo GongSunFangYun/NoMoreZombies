@@ -99,6 +99,22 @@ NoMoreZombies 是一个 Fabric 模组，运行于 Minecraft 1.21.4，仅作用�
 
 ---
 
+## 支持地图
+
+波次时间表与道具刷新规律覆盖全部五张 Zombies 地图：
+
+| 地图 | 回合数 |
+|---|---|
+| 外星游乐园（Alien Arcadium） | 105 |
+| 穷途末路（Dead End） | 30 |
+| 坏血之宫（Bad Blood） | 30 |
+| 实验室（The Lab） | 40 |
+| 监狱（Prison） | 30 |
+
+其中「外星游乐园」额外拥有自动指挥、首领波颜色预警与电击棒冷却 HUD。
+
+---
+
 ## 安装步骤
 
 1. 安装 Fabric Loader 0.16.14，并创建 Minecraft 1.21.4 版本的游戏实例。
@@ -106,6 +122,16 @@ NoMoreZombies 是一个 Fabric 模组，运行于 Minecraft 1.21.4，仅作用�
 3. 安装以下依赖模组（需一并放入 `mods/` 文件夹）：
    - Fabric API
    - MaLiLib
+
+### 依赖要求
+
+| 依赖 | 版本 |
+|---|---|
+| Minecraft | 1.21.4 |
+| Fabric Loader | ≥ 0.16.14 |
+| Fabric API | ≥ 0.119.4 |
+| MaLiLib | ≥ 0.23.5 |
+| ModMenu | 13.0.3（可选） |
 
 ---
 
@@ -115,6 +141,18 @@ NoMoreZombies 是一个 Fabric 模组，运行于 Minecraft 1.21.4，仅作用�
 - 所有功能开关默认处于关闭状态。可在配置界面为任意开关绑定热键，游戏内即时切换。
 - 配置文件位于 `config/nomorezombies.json`，为明文 JSON 格式，可手动编辑。
 - 数据表（波次时间、道具刷新规律）支持游戏内热重载，按 **F3 + T** 即可生效。
+
+---
+
+## 从源码构建
+
+环境要求：**JDK 21**。
+
+```bash
+./gradlew build
+```
+
+构建产物位于 `build/libs/NoMoreZombies-pre-release-0.1.jar`。
 
 ---
 
@@ -138,3 +176,9 @@ NoMoreZombies 是一个 Fabric 模组，运行于 Minecraft 1.21.4，仅作用�
 - [tweakeroo](https://github.com/maruohon/tweakeroo)
 
 本模组并未直接引用以上项目的代码，仅进行功能参考并自行实现逻辑。
+
+---
+
+## 许可证
+
+[LGPL-3.0-only](LICENSE) — 详见 `LICENSE` 文件。
