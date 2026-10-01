@@ -258,16 +258,27 @@ public final class QueryDataTree {
      * and the block keeps one fixed size no matter which values it holds.
      */
     public static int[] summaryColumnWidths(List<Row> rows, TextRenderer tr) {
-        int[] w = new int[SUMMARY_COLS];
+        List<List<List<QueryDataOverview.Span>>> cellLists = new ArrayList<>();
         for (Row r : rows) {
-            if (!r.isGrid() || !isSummaryLayout(r.cells, r.lines)) {
-                continue;
+            if (r.isGrid() && isSummaryLayout(r.cells, r.lines)) {
+                cellLists.add(r.cells);
             }
-            int maps = r.cells.size() - 1;
+        }
+        return summaryColumnWidths(tr, cellLists);
+    }
+
+    /**
+     * Same measurement over bare cell lists (one per summary row) - shared with the in-game
+     * overview panel, which has no {@link Row}s.
+     */
+    public static int[] summaryColumnWidths(TextRenderer tr, List<List<List<QueryDataOverview.Span>>> cellLists) {
+        int[] w = new int[SUMMARY_COLS];
+        for (List<List<QueryDataOverview.Span>> cells : cellLists) {
+            int maps = cells.size() - 1;
             for (int i = 0; i < maps; i++) {
-                w[i % 2] = Math.max(w[i % 2], QueryDataOverview.spansWidth(tr, r.cells.get(i)));
+                w[i % 2] = Math.max(w[i % 2], QueryDataOverview.spansWidth(tr, cells.get(i)));
             }
-            w[2] = Math.max(w[2], QueryDataOverview.spansWidth(tr, r.cells.get(maps)));
+            w[2] = Math.max(w[2], QueryDataOverview.spansWidth(tr, cells.get(maps)));
         }
         return w;
     }

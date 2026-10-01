@@ -44,7 +44,12 @@ public final class QueryDataOverview {
     private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
     /** Gap (px) between a row's label and its right-aligned value - also counted into the available width for the side-by-side test. */
-    private static final int GAP = 10;
+    static final int GAP = 10;
+    /**
+     * Gap (px) between a cumulative row's label and its data block - tighter than {@link #GAP} so the label
+     * and the block stay on one line in as narrow a panel as possible, before the stacked fallback is needed.
+     */
+    static final int GRID_LABEL_GAP = 6;
 
     /** Indent (px) of a wrapped continuation (the value) relative to the panel's left edge - keeps the hierarchy legible. */
     public static final int INDENT = 8;
@@ -192,7 +197,12 @@ public final class QueryDataOverview {
      * the joined full text, used only for width computation and the wrap
      * test.
      */
-    public record Line(String label, String value, int color, List<Span> spans) {
+    public record Line(String label, String value, int color, List<Span> spans, List<List<Span>> cells) {
+
+        /** Line without grid cells (everything except the cumulative rows). */
+        public Line(String label, String value, int color, List<Span> spans) {
+            this(label, value, color, spans, null);
+        }
 
         /** Plain line: one value, one color. */
         static Line of(String label, String value, int color) {
@@ -219,9 +229,19 @@ public final class QueryDataOverview {
      * right value is colored segment by segment.
      */
     public record DrawRow(String left, String right, int color, boolean indent, boolean header,
-                          List<Span> rightSpans) {
-        /** Height this row occupies: headers get more whitespace, body rows stay compact. */
+                          List<Span> rightSpans, List<List<Span>> cells) {
+
+        /** Row without grid cells. */
+        public DrawRow(String left, String right, int color, boolean indent, boolean header,
+                       List<Span> rightSpans) {
+            this(left, right, color, indent, header, rightSpans, null);
+        }
+
+        /** Height this row occupies: headers get more whitespace, body rows stay compact, grid rows are two lines tall. */
         public int gap(int fh) {
+            if (cells != null) {
+                return fh * 2 + 4;
+            }
             return header ? fh + 5 : fh + 2;
         }
 
@@ -302,7 +322,8 @@ public final class QueryDataOverview {
         List<GridRow> rows = sumGridRows(s);
         List<Line> out = new ArrayList<>(rows.size());
         for (GridRow row : rows) {
-            out.add(new Line(row.label(), joinCells(row.cells()), COLOR_LABEL, flattenCells(row.cells())));
+            out.add(new Line(row.label(), joinCells(row.cells()), COLOR_LABEL, flattenCells(row.cells()),
+                    row.cells()));
         }
         return out;
     }
@@ -861,13 +882,65 @@ public final class QueryDataOverview {
      * only drifts further off, and wrapping happens only on very narrow
      * panels anyway.
      *
+     * <p>Cumulative rows (those carrying grid cells) become two-line grid rows when the panel is wide
+     * enough for all of them; otherwise they wrap like any other long value.
+     *
      * @param avail the panel's available width (px)
      */
     public static List<DrawRow> wrap(TextRenderer tr, List<Line> lines, int avail) {
+        return wrap(tr, lines, avail, List.of());
+    }
+
+    /**
+     * Same as {@link #wrap(TextRenderer, List, int)}, but the cumulative rows' layout is also measured
+     * against {@code alsoMeasure} (other players' cumulative cells).
+     *
+     * <p>The in-game panel passes every listed player's cells here: the layout mode and the column widths
+     * then depend on <b>the whole list</b> rather than on whichever player is selected, so every player
+     * is laid out the same way and the columns do not jump when switching between them.
+     *
+     * <p>Cumulative rows have three modes, picked once for all of them: side by side (label left, 2x2 +
+     * Total block right) when the widest label plus the block fit; stacked (label on its own line, the
+     * same block below it) when only the block fits; otherwise the old wrapping.
+     */
+    public static List<DrawRow> wrap(TextRenderer tr, List<Line> lines, int avail,
+                                     List<List<List<Span>>> alsoMeasure) {
         List<DrawRow> out = new ArrayList<>();
+
+        List<List<List<Span>>> gridCells = new ArrayList<>(alsoMeasure);
+        boolean anyGrid = false;
+        int maxGridLabelW = 0;
+        for (Line l : lines) {
+            if (l.cells() != null && QueryDataTree.isSummaryLayout(l.cells(), 2)) {
+                gridCells.add(l.cells());
+                anyGrid = true;
+                maxGridLabelW = Math.max(maxGridLabelW, tr.getWidth(l.label()));
+            }
+        }
+        boolean side = false;
+        boolean stacked = false;
+        if (anyGrid) {
+            int sumW = 0;
+            for (int w : QueryDataTree.summaryColumnWidths(tr, gridCells)) {
+                sumW += w;
+            }
+            int blockMin = sumW + (QueryDataTree.SUMMARY_COLS - 1) * QueryDataTree.SUMMARY_MIN_GAP;
+            side = maxGridLabelW + GRID_LABEL_GAP + blockMin <= avail;
+            stacked = !side && GRID_LABEL_GAP + blockMin <= avail;
+        }
+
         for (Line l : lines) {
             if (l.value() == null) {
                 out.add(DrawRow.of(l.label(), null, l.color(), false, true));
+                continue;
+            }
+            if ((side || stacked) && l.cells() != null && QueryDataTree.isSummaryLayout(l.cells(), 2)) {
+                if (side) {
+                    out.add(new DrawRow(l.label(), null, l.color(), false, false, null, l.cells()));
+                } else {
+                    out.add(DrawRow.of(l.label(), null, l.color(), false, false));
+                    out.add(new DrawRow(null, null, l.color(), false, false, null, l.cells()));
+                }
                 continue;
             }
             int labelW = tr.getWidth(l.label());
@@ -878,6 +951,15 @@ public final class QueryDataOverview {
                 appendWrapped(tr, out, l.label(), l.color(), false, avail, false);
                 appendWrapped(tr, out, l.value(), COLOR_VALUE, false, avail, true);
             }
+        }
+        return out;
+    }
+
+    /** The cumulative rows' cell lists of one player - what the in-game panel measures every listed player by. */
+    static List<List<List<Span>>> sumCellLists(ZombiesStats s) {
+        List<List<List<Span>>> out = new ArrayList<>(SUM_STATS.size());
+        for (GridRow row : sumGridRows(s)) {
+            out.add(row.cells());
         }
         return out;
     }

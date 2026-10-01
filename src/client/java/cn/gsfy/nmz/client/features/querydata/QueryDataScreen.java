@@ -12,6 +12,7 @@ import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.text.Text;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -58,7 +59,7 @@ import java.util.Set;
  *  Y=56  in-game player list / detail panel origin (MODE_BTN_Y + 20 + 4)
  *  Y=58  free mode input field (hasKey) / warning banner origin (no key)
  *  panelY (free) = inputField.getY() + inputField.getHeight() + 8  dynamic follow
- *  panelY (in-game) = LIST_Y (aligned with the list origin)
+ *  panelY (in-game) = LIST_Y + IN_GAME_STRIP_H (under the horizontal player-tab strip, which sits at LIST_Y)
  * </pre>
  */
 public class QueryDataScreen extends Screen {
@@ -82,9 +83,15 @@ public class QueryDataScreen extends Screen {
     private static final int LIST_X = 10;
     /** Margin (px) between panels and the screen's right/bottom edges. */
     private static final int PANEL_MARGIN = 10;
+    /** Player tabs in the in-game strip: one slot per possible player (Zombies has at most four). */
+    private static final int IN_GAME_TAB_SLOTS = 4;
+    /** Gap (px) between two neighbouring player tabs. */
+    private static final int TAB_GAP = 4;
+    /** Space (px) inside a player tab before the text column: avatar + padding. */
+    private static final int LIST_TEXT_INSET = 16;
+    /** Right padding (px) of a tab's text, so a cut name never touches the tab's edge. */
+    private static final int LIST_TEXT_PAD = 4;
 
-    /** Inset (px) of a list entry's backdrop relative to the entry box: a little off each side, so the backdrop does not touch the panel edge. */
-    private static final int ENTRY_BG_INSET = 2;
     /**
      * Top edge and height (px, relative to the entry origin ey) of a list
      * entry's backdrop - sized to the actual ink of "avatar / two text
@@ -97,6 +104,8 @@ public class QueryDataScreen extends Screen {
      */
     private static final int ENTRY_BG_TOP = 3;
     private static final int ENTRY_BG_H = 18;
+    /** Height (px) the player-tab strip takes below the mode buttons, tab backdrops plus a little air; the detail panel starts under it. */
+    private static final int IN_GAME_STRIP_H = ENTRY_BG_TOP + ENTRY_BG_H + 6;
 
     private final Screen parent;
 
@@ -358,33 +367,32 @@ public class QueryDataScreen extends Screen {
 
     // ──In-game query────────────────────────────────────────────────────────
 
-    /** In-game rendering: player list on the left + detail panel on the right, each list row embedding a request-status brief. */
+    /** In-game rendering: a horizontal strip of player tabs under the mode buttons + the full-width detail panel below it; each tab embeds a request-status brief. */
     private void renderInGameMode(DrawContext context) {
         QueryDataManager manager = QueryDataManager.get();
         List<String> names = manager.currentInGameNames();
         boolean hasKey = manager.hasApiKey();
 
-        // Player list on the left: width adapts to the names, horizontal space yields to the
-        // detail panel on the right.
-        // The list origin is pinned at LIST_Y, its own coordinate separate from the toolbar
-        int listW = inGameListWidth();
-
-        for (int i = 0; i < names.size(); i++) {
+        // Player tabs: one horizontal row under the mode buttons, four equal slots across the screen
+        // width, so the detail panel below can use the full width. A tab holds avatar + name + the
+        // request-status brief; text that does not fit its slot is cut with an ellipsis.
+        int tabW = tabSlotWidth();
+        int ey = LIST_Y;
+        for (int i = 0; i < names.size() && i < IN_GAME_TAB_SLOTS; i++) {
             String name = names.get(i);
-            int ey = LIST_Y + i * ENTRY_H;
-            if (i == selectedIndex) {
-                // The backdrop follows the actual ink of "avatar / two text lines", not ENTRY_H -
-                // that is the only way to wrap both lines: no gap at the top, no clipped glyphs at
-                // the bottom
-                int bgTop = ey + ENTRY_BG_TOP;
-                context.fill(LIST_X + ENTRY_BG_INSET, bgTop,
-                        LIST_X + listW - ENTRY_BG_INSET, bgTop + ENTRY_BG_H, 0x40FFFFFF);
-            }
-            AvatarUtils.drawHead(context, name, null, LIST_X + 3, ey + 5);
-            context.drawTextWithShadow(this.textRenderer, name, LIST_X + 16, ey + 4, 0xFFFFFF);
+            int tx = tabX(i);
+            // The backdrop follows the actual ink of "avatar / two text lines", not ENTRY_H -
+            // no gap at the top, no clipped glyphs at the bottom
+            int bgTop = ey + ENTRY_BG_TOP;
+            context.fill(tx, bgTop, tx + tabW, bgTop + ENTRY_BG_H, i == selectedIndex ? 0x40FFFFFF : 0x18FFFFFF);
+            AvatarUtils.drawHead(context, name, null, tx + 3, ey + 5);
+            int textW = tabW - LIST_TEXT_INSET - LIST_TEXT_PAD;
+            context.drawTextWithShadow(this.textRenderer, fitListText(name, textW),
+                    tx + LIST_TEXT_INSET, ey + 4, 0xFFFFFF);
             // Second small line: loading / error / network level - each player's request state at a glance
             String brief = briefFor(manager, name, hasKey);
-            context.drawTextWithShadow(this.textRenderer, brief, LIST_X + 16, ey + 12, 0x888888);
+            context.drawTextWithShadow(this.textRenderer, fitListText(brief, textW),
+                    tx + LIST_TEXT_INSET, ey + 12, 0x888888);
         }
         if (names.isEmpty()) {
             drawStatus(context, LIST_X, LIST_Y, tr("nomorezombies.query.status.noplayer"), 0xAAAAAA);
@@ -417,14 +425,14 @@ public class QueryDataScreen extends Screen {
         }
     }
 
-    /** In-game detail panel left edge (px) - the list width adapts. */
+    /** In-game detail panel left edge (px) - it spans the full width now, under the tab strip. */
     private int inGamePanelX() {
-        return LIST_X + inGameListWidth() + 10;
+        return LIST_X;
     }
 
-    /** In-game detail panel origin Y - the same constant as the list origin, no second number. */
+    /** In-game detail panel origin Y - right under the player-tab strip. */
     private int inGamePanelY() {
-        return LIST_Y;
+        return LIST_Y + IN_GAME_STRIP_H;
     }
 
     /** Panel right edge (px) - shared by both modes. */
@@ -466,6 +474,10 @@ public class QueryDataScreen extends Screen {
 
         // Fold into drawable rows first and compute the content height exactly - only then is
         // the scroll range right - and clip-draw after that
+        // Layout mode (label and block on one line / stacked) and column widths both come from the
+        // selected player's own values, exactly like the free query: a player whose numbers fit gets
+        // the one-line layout no matter who else is in the list. Stacked is only the fallback for a
+        // player whose block really does not fit beside the label.
         List<QueryDataOverview.DrawRow> rows =
                 QueryDataOverview.wrap(this.textRenderer, QueryDataOverview.lines(s), avail);
         int contentH = 0;
@@ -476,6 +488,21 @@ public class QueryDataScreen extends Screen {
         if (scrollOffset > maxScroll) {
             scrollOffset = maxScroll;
         }
+
+        // Cumulative (grid) rows share one set of column widths, and the block starts right of the
+        // widest label
+        List<List<List<QueryDataOverview.Span>>> gridCells = new ArrayList<>();
+        int maxGridLabelW = 0;
+        for (QueryDataOverview.DrawRow r : rows) {
+            if (r.cells() != null) {
+                gridCells.add(r.cells());
+                if (r.left() != null) {
+                    maxGridLabelW = Math.max(maxGridLabelW, this.textRenderer.getWidth(r.left()));
+                }
+            }
+        }
+        int[] gridW = QueryDataTree.summaryColumnWidths(this.textRenderer, gridCells);
+        int gridValueX = panelX + maxGridLabelW + QueryDataOverview.GRID_LABEL_GAP;
 
         // enableScissor takes absolute coordinates (panelX, panelY, panelRight, panelBottom);
         // passing width/height shifts the whole clip region
@@ -489,10 +516,16 @@ public class QueryDataScreen extends Screen {
             // current row, which makes it easier to click
             if (hoverMouseX >= panelX && hoverMouseX < panelRight
                     && hoverMouseY >= y && hoverMouseY < y + rowH) {
-                context.fill(panelX, y, panelRight, y + fh, 0x28FFFFFF);
+                context.fill(panelX, y, panelRight, y + (r.cells() != null ? fh * 2 : fh), 0x28FFFFFF);
             }
             int textX = r.indent() ? panelX + QueryDataOverview.INDENT : panelX;
-            if (r.right() == null) {
+            if (r.cells() != null) {
+                // Wide cumulative row: label vertically centered across the two lines, then the block
+                if (r.left() != null) {
+                    context.drawTextWithShadow(this.textRenderer, r.left(), textX, y + fh / 2, r.color());
+                }
+                drawSummaryBlock(context, r.cells(), gridValueX, panelRight, y, gridW, 2);
+            } else if (r.right() == null) {
                 context.drawTextWithShadow(this.textRenderer, r.left(), textX, y, r.color());
             } else {
                 context.drawTextWithShadow(this.textRenderer, r.left(), textX, y, r.color());
@@ -522,13 +555,28 @@ public class QueryDataScreen extends Screen {
         drawSpans(context, spans, x, y);
     }
 
-    /** In-game list width: adapts to the longest name (clamped to 130-210px), yielding horizontal space to the detail panel. */
-    private int inGameListWidth() {
-        int maxName = 0;
-        for (String n : QueryDataManager.get().currentInGameNames()) {
-            maxName = Math.max(maxName, this.textRenderer.getWidth(n));
+    /** Width (px) of one player tab: the screen width between the margins split into {@link #IN_GAME_TAB_SLOTS} equal slots. */
+    private int tabSlotWidth() {
+        int total = panelRightEdge() - LIST_X;
+        return (total - (IN_GAME_TAB_SLOTS - 1) * TAB_GAP) / IN_GAME_TAB_SLOTS;
+    }
+
+    /** Left edge (px) of the i-th player tab - rendering and hit-testing both come through here. */
+    private int tabX(int i) {
+        return LIST_X + i * (tabSlotWidth() + TAB_GAP);
+    }
+
+    /**
+     * Fits a player tab's text into {@code maxW}: unchanged when it fits, otherwise cut and ended with
+     * {@code ..} (the full name is always in the panel's Name row).
+     */
+    private String fitListText(String text, int maxW) {
+        if (text == null || this.textRenderer.getWidth(text) <= maxW) {
+            return text;
         }
-        return Math.clamp(16 + maxName + 10, 130, 210);
+        String ellipsis = "..";
+        int keep = Math.max(0, maxW - this.textRenderer.getWidth(ellipsis));
+        return this.textRenderer.trimToWidth(text, keep) + ellipsis;
     }
 
     // ──The free query's tree panel──────────────────────────────────────────
@@ -856,6 +904,12 @@ public class QueryDataScreen extends Screen {
      */
     private void drawSummaryCells(DrawContext context, QueryDataTree.Row r, int valueX, int panelRight,
                                   int y, int[] colW) {
+        drawSummaryBlock(context, r.cells, valueX, panelRight, y, colW, r.lines);
+    }
+
+    /** The summary block itself (see {@link #drawSummaryCells}) - shared by the free query tree and the in-game overview. */
+    private void drawSummaryBlock(DrawContext context, List<List<QueryDataOverview.Span>> cells, int valueX,
+                                  int panelRight, int y, int[] colW, int lines) {
         int fh = this.textRenderer.fontHeight;
         int sumW = 0;
         for (int w : colW) {
@@ -875,14 +929,14 @@ public class QueryDataScreen extends Screen {
             colX[c] = cx;
             cx += colW[c] + gap;
         }
-        int maps = r.cells.size() - 1;
+        int maps = cells.size() - 1;
         for (int i = 0; i < maps; i++) {
-            drawSpans(context, r.cells.get(i), colX[i % 2], y + (i / 2) * fh);
+            drawSpans(context, cells.get(i), colX[i % 2], y + (i / 2) * fh);
         }
         // Total: left-aligned in its column (same as the map columns), vertically centered
         // across the row's two lines
-        List<QueryDataOverview.Span> total = r.cells.get(maps);
-        int ty = y + (r.lines - 1) * fh / 2;
+        List<QueryDataOverview.Span> total = cells.get(maps);
+        int ty = y + (lines - 1) * fh / 2;
         drawSpans(context, total, colX[2], ty);
     }
 
@@ -1023,10 +1077,11 @@ public class QueryDataScreen extends Screen {
             return false;
         }
         List<String> names = manager.currentInGameNames();
-        int listW = inGameListWidth();
-        if (mouseX >= LIST_X && mouseX < LIST_X + listW) {
-            int idx = (int) ((mouseY - LIST_Y) / ENTRY_H);
-            if (idx >= 0 && idx < names.size()) {
+        int tabW = tabSlotWidth();
+        if (mouseY >= LIST_Y && mouseY < LIST_Y + IN_GAME_STRIP_H && mouseX >= LIST_X) {
+            int idx = (int) ((mouseX - LIST_X) / (tabW + TAB_GAP));
+            boolean onTab = mouseX < tabX(idx) + tabW;   // the gap between two tabs is not a click
+            if (onTab && idx >= 0 && idx < names.size() && idx < IN_GAME_TAB_SLOTS) {
                 this.selectedIndex = idx;
                 this.scrollOffset = 0;
                 String name = names.get(idx);

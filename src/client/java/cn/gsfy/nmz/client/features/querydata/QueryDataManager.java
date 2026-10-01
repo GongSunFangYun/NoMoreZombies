@@ -164,17 +164,65 @@ public final class QueryDataManager {
         }
     }
 
-    /** Self-check once per tick: when no longer in Zombies (empty world / non-Zombies mode), destroy the in-game cache. */
+    /** How often (ticks) the safety net looks for in-game players that were never queried: every 10 ticks = 0.5 s. */
+    private static final int AUTO_FETCH_INTERVAL = 10;
+    /** Ticks since the last safety-net check. */
+    private int autoFetchTicks;
+
+    /**
+     * Self-check once per tick: (1) when no longer in Zombies (empty world / non-Zombies mode), destroy
+     * the in-game cache; (2) while in Zombies, query players that nothing has queried yet.
+     */
     private void tick() {
         checkLanguage();
-        if (cache.isEmpty() && errors.isEmpty()) {
+        MinecraftClient mc = MinecraftClient.getInstance();
+        if (!cache.isEmpty() || !errors.isEmpty()) {
+            // Empty world / no longer in Zombies (lobby, other minigames) -> the cache is stale
+            // data, cleared immediately
+            if (mc.world == null || !PlayerUtils.isInZombies()) {
+                clearCache();
+                return;
+            }
+        }
+        if (++autoFetchTicks >= AUTO_FETCH_INTERVAL) {
+            autoFetchTicks = 0;
+            autoFetchMissing(mc);
+        }
+    }
+
+    /**
+     * The safety net for joining / rejoining a running game: queries every in-game player that has no
+     * result, no error and no request in flight - without waiting for the next round's scheduled fetch.
+     *
+     * <p>Leaving Zombies clears the cache, and a player who rejoins mid-game then has nothing cached,
+     * while the round-based trigger ({@code fetchInGamePlayers} a few seconds into each round) only
+     * fires when the next round starts. Polling here closes that gap: as soon as the client is in
+     * Zombies and the roster is readable, the missing players are requested. It also covers a roster
+     * that fills in late (the local player is known first, teammates are scanned a moment later) -
+     * each newcomer is picked up on the next poll.
+     *
+     * <p>Skipped while: no key is configured, the world / Zombies check does not hold yet, translations
+     * are reloading (data parsed mid-reload would carry the wrong labels), or a language-change refetch
+     * is pending. Players whose request failed are left alone here (no hammering a failing request
+     * every half second); the round trigger retries them as before. Names already cached or in flight
+     * are never requested twice - this and {@link #onGameStart} share the same guards.
+     */
+    private void autoFetchMissing(MinecraftClient mc) {
+        if (mc.world == null || refetchDelay > 0 || !hasApiKey() || currentLangSig() == null) {
             return;
         }
-        MinecraftClient mc = MinecraftClient.getInstance();
-        // Empty world / no longer in Zombies (lobby, other minigames) -> the cache is stale
-        // data, cleared immediately
-        if (mc.world == null || !PlayerUtils.isInZombies()) {
-            clearCache();
+        if (!PlayerUtils.isInZombies()) {
+            return;
+        }
+        List<String> missing = new ArrayList<>();
+        for (String name : currentInGameNames()) {
+            String key = name.toLowerCase(Locale.ROOT);
+            if (!cache.containsKey(key) && !errors.containsKey(key) && !loading.contains(key)) {
+                missing.add(name);
+            }
+        }
+        if (!missing.isEmpty()) {
+            onGameStart(missing);
         }
     }
 
