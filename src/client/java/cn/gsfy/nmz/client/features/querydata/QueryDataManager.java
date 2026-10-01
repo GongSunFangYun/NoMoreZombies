@@ -8,6 +8,7 @@ import cn.gsfy.nmz.client.features.stats.TeamStats;
 import cn.gsfy.nmz.client.utils.PlayerUtils;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.text.Text;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -107,8 +108,65 @@ public final class QueryDataManager {
         ClientTickEvents.END_CLIENT_TICK.register(client -> tick());
     }
 
+    /**
+     * Translation keys whose text identifies the client language: the parser bakes <b>translated</b>
+     * labels into {@code ZombiesStats} (map / stat / difficulty names), and the UI looks data up by
+     * the current translations - so cached data is only readable in the language it was parsed in.
+     */
+    private static final String[] LANG_PROBE_KEYS = {
+            "nomorezombies.query.map.deadend",
+            "nomorezombies.query.diff.normal",
+            "nomorezombies.query.stat.wins"};
+    /** Translation fingerprint the cache was parsed under; null until the first tick sees loaded translations. */
+    private String langSig;
+    /** Ticks left before refetching after a language change (-1 = nothing pending) - waits for the resource reload to settle. */
+    private int refetchDelay = -1;
+
+    /** The current translation fingerprint; null while translations are not loaded (a key comes back as itself). */
+    private static String currentLangSig() {
+        StringBuilder sb = new StringBuilder();
+        for (String key : LANG_PROBE_KEYS) {
+            String text = Text.translatable(key).getString();
+            if (key.equals(text)) {
+                return null;
+            }
+            sb.append(text).append('|');
+        }
+        return sb.toString();
+    }
+
+    /**
+     * A language switch (resource reload) makes every cached {@code ZombiesStats} unreadable: its labels
+     * are in the old language, the lookups use the new one, and every cumulative / per-map value then
+     * misses and draws as "-". So on a change the cache is dropped and, once the reload has settled,
+     * the in-game players are fetched again (parsed in the new language).
+     */
+    private void checkLanguage() {
+        String sig = currentLangSig();
+        if (sig == null) {
+            return; // translations are reloading - decide once they are back
+        }
+        if (langSig == null) {
+            langSig = sig;
+            return;
+        }
+        if (!sig.equals(langSig)) {
+            langSig = sig;
+            clearCache();
+            refetchDelay = 20;
+            return;
+        }
+        if (refetchDelay > 0 && --refetchDelay == 0) {
+            MinecraftClient mc = MinecraftClient.getInstance();
+            if (mc.world != null && PlayerUtils.isInZombies()) {
+                fetchInGamePlayers();
+            }
+        }
+    }
+
     /** Self-check once per tick: when no longer in Zombies (empty world / non-Zombies mode), destroy the in-game cache. */
     private void tick() {
+        checkLanguage();
         if (cache.isEmpty() && errors.isEmpty()) {
             return;
         }
