@@ -1,0 +1,68 @@
+# ---- Gradle ----
+.gradle/
+build/
+out/
+!gradle/wrapper/gradle-wrapper.jar
+
+# ---- IDE: IntelliJ IDEA ----
+.idea/
+*.iml
+*.ipr
+*.iws
+out/
+
+# ---- IDE: Eclipse / VS Code ----
+.classpath
+.project
+.settings/
+.vscode/
+
+# ---- IDE: NetBeans ----
+nbproject/private/
+nbbuild/
+nbdist/
+.nb-gradle/
+
+# ---- OS junk ----
+.DS_Store
+Thumbs.db
+desktop.ini
+*~
+
+# ---- Logs / crash reports ----
+*.log
+logs/
+run/
+crash-reports/
+
+# ---- Fabric / Minecraft run ----
+run/
+remappedSrc/
+remapJar/
+
+# ---- Local config / secrets ----
+# The mod's own config with API key
+config/nomorezombies.json
+# Local Hypixel API key notes
+**/api-key.txt
+**/apikey.txt
+
+# ---- Temporary data the mod writes ----
+# Actually lives in %temp%, not the repo — keep the pattern for safety
+nmz_gamecache.json
+
+# ---- Local data dumps ----
+*.dump
+*.local.json
+
+# ---- Python / Node tooling (if any tooling is added) ----
+__pycache__/
+*.py[cod]
+node_modules/
+package-lock.json
+
+# ---- Signing / publishing (keep out of the repo) ----
+# Put your own signing keystore here if you ever sign builds
+*.jks
+*.keystore
+signing.properties
