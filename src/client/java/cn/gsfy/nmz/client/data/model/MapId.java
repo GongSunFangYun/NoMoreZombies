@@ -1,17 +1,17 @@
 package cn.gsfy.nmz.client.data.model;
 
 /**
- * Zombies 地图标识——每个枚举常量的 jsonKey 与数据 JSON 里的 maps 键一一对应。
+ * Zombies map id. Each enum constant's {@code jsonKey} matches one key
+ * under {@code maps} in the data JSON.
  *
- * <p>回合数上限不在这存（没有消费者）：波次表能走到第几回合全由行长决定，
- * 缺行靠 DataManager 降级说明里的守卫静默跳过。
+ * <p>The enum stores only the JSON key, so hot-reloadable data never gets
+ * pinned down in code.
  */
 public enum MapId {
     NULL(""),
     ALIEN_ARCADIUM("alien_arcadium"),
     DEAD_END("dead_end"),
     BAD_BLOOD("bad_blood"),
-    THE_LAB("the_lab"),
     PRISON("prison");
 
     private final String jsonKey;
@@ -20,7 +20,8 @@ public enum MapId {
         this.jsonKey = jsonKey;
     }
 
-    /** 由数据 JSON 的 maps 键反查枚举；不认识就返回 {@link #NULL} 当「无地图」处理。 */
+    /** Reverse-lookup by a data JSON {@code maps} key; an unrecognized key
+     *  returns {@link #NULL}, treated as "no map". */
     public static MapId fromJsonKey(String key) {
         for (MapId id : values()) {
             if (id.jsonKey.equals(key)) {

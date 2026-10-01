@@ -32,6 +32,13 @@ fabricApi {
 repositories {
     mavenLocal()                                              // MaLiLib LTS（本机 fork 发布）
     maven { url "https://maven.terraformersmc.com/releases/" }  // ModMenu
+
+    // DevAuth：dev 环境正版登录（自动 OAuth + token 刷新）
+    maven {
+        name = "DevAuth"
+        url = "https://pkgs.dev.azure.com/djtheredstoner/DevAuth/_packaging/public/maven/v1"
+    }
+
     // Add repositories to retrieve artifacts from in here.
     // You should only use this when depending on other mods because
     // Loom adds the essential maven repositories to download Minecraft and libraries from automatically.
@@ -55,6 +62,13 @@ dependencies {
         exclude(group: "net.fabricmc", module: "fabric-loader")
     }
     modImplementation "com.terraformersmc:modmenu:${project.modmenu_version}"
+
+    // DevAuth：仅 dev 环境加载，不打包进最终 jar
+    // 让 runClient 以真实微软账号登录，自动 OAuth + 刷新 token
+    modRuntimeOnly("me.djtheredstoner:DevAuth-fabric:1.2.0") {
+        exclude(group: "net.fabricmc.fabric-api")
+        exclude(group: "net.fabricmc", module: "fabric-loader")
+    }
 }
 
 processResources {

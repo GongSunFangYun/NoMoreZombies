@@ -7,56 +7,70 @@ import java.util.Map;
 import java.util.TreeMap;
 
 /**
- * 玩家 Zombies 模式完整数据——ZombiesStatsParser 从 Hypixel {@code player.stats.Arcade}
- * 里所有含 "zombie" 的 key 榨出来的显示态结果。
+ * Full Zombies stats for one player, in the display-ready form
+ * {@code ZombiesStatsParser} extracts from every {@code zombie*} key under
+ * Hypixel's {@code player.stats.Arcade}.
  *
- * <p>字段全部是界面可直接渲染的现成形态：label 已翻译、数值已带千分位，
- * 渲染层不需要再碰原始 JSON。
+ * <p>Every field is ready for the UI to render directly: labels are already
+ * translated and some numbers are pre-formatted. So the parser can fill them
+ * one by one, the public fields and collections stay mutable on purpose—
+ * {@code final} on a collection fixes the reference, not its content—and
+ * callers get the internal containers themselves, with no defensive copying.
  */
 public final class ZombiesStats {
 
-    // ---- 玩家概览 ----
-    /** 无连字符 UUID——请求时带入，原样带回，方便知道这份数据属于谁。 */
+    // ---- Player overview ----
+    /** Hyphen-less UUID. Sent with the request and returned as-is, so it's
+     *  clear whose data this is. */
     public String uuid = "";
-    /** 当前显示名——displayname 缺失时退回 playername。 */
+    /** Current display name. Falls back to {@code playername} when
+     *  {@code displayname} is missing; an empty string when both are. */
     public String displayName = "";
+    /** Raw Hypixel karma count. 0 when the field is missing or not a number. */
     public long karma;
+    /** Raw Hypixel networkExp. 0 when the field is missing or not a number. */
     public long networkExp;
-    /** 网络等级——由 networkExp 换算，展示在概览区。 */
+    /** Network level, computed from {@code networkExp}. Non-positive XP gives 0. */
     public int networkLevel;
-    /** 首次游玩时间（epoch ms，0 = 没有记录）。 */
+    /** First play time, in epoch ms. 0 means no record. */
     public long firstLogin;
-    /** 最近登录时间（epoch ms）。 */
+    /** Last login time, in epoch ms. */
     public long lastLogin;
-    /** 最近下线时间（epoch ms）。 */
+    /** Last logout time, in epoch ms. */
     public long lastLogout;
 
-    /** 综合统计（无地图后缀的 {@code X_zombies}）：按优先级排好的 (label, value) 行。 */
+    /** Overall stats. Internal mutable list, ordered by known-item priority;
+     *  unknown items keep the order they were parsed in. */
     public final List<Row> overall = new ArrayList<>();
-    /** 各地图统计：地图 label → 有序行，每行按难度分列（综合 / 普通 / 困难 / RIP）。 */
+    /** Per-map stats. Internal mutable map; maps appear in a fixed table order,
+     *  and each map's rows follow the parser's {@code STAT_ORDER}. Unknown
+     *  items outside that table go after, in JSON order. */
     public final Map<String, List<MapStat>> perMap = new LinkedHashMap<>();
-    /** 敌人击杀：敌名 label → 数量，已按数量降序排好。 */
+    /** Enemy kills. Internal mutable map, sorted by count descending when
+     *  parsing finishes; ties keep JSON order. */
     public final Map<String, Long> enemyKills = new LinkedHashMap<>();
-    /** 最快回合记录：回合数(10/20/30) → (范围 label → 秒)。范围 label「全局」= 不限地图。 */
+    /** Fastest round records. Internal mutable tree map:
+     *  round → (range label → seconds). */
     public final TreeMap<Integer, Map<String, Long>> fastestTimes = new TreeMap<>();
-    /** 杂项——非数值项（隐藏教程 / 排行榜设置之类），原样展示在末尾一栏。 */
-    public final List<Row> misc = new ArrayList<>();
 
-    /** 一行数据：label 左灰、value 右白——界面渲染的最小单位。 */
+    /** One row: label on the left in grey, value on the right in white.
+     *  The smallest unit the UI renders. */
     public static final class Row {
         public final String label;
         public final String value;
 
+        /** Both values arrive already prepared by the parser. */
         public Row(String label, String value) {
             this.label = label;
             this.value = value;
         }
     }
 
-    /** 某统计项在各难度下的取值——普通 / 困难 / RIP 一个 key 家族并成一行。 */
+    /** One stat's values across difficulties. Normal/hard/RIP keys of the
+     *  same family merge into one row. */
     public static final class MapStat {
         public final String label;
-        /** 难度 label → 数值（综合 / 普通 / 困难 / RIP）。 */
+        /** Difficulty label → value (overall/normal/hard/RIP). */
         public final LinkedHashMap<String, Long> values = new LinkedHashMap<>();
 
         public MapStat(String label) {

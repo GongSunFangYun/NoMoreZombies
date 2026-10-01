@@ -5,49 +5,74 @@ import com.google.gson.JsonPrimitive;
 import fi.dy.masa.malilib.config.options.ConfigString;
 
 /**
- * 掩码 API Key 配置项（继承 MaLiLib 的 STRING 内联文本框）——明文不露脸，只显示掩码。
+ * Masked API Key config option (extends MaLiLib's inline STRING text field):
+ * the plaintext never shows in the UI, only the mask does.
  *
- * <p>文本框里始终显示掩码 {@code ••••••••}（真实值不进 UI 可读文本）；实际明文在
- * {@link #setValueFromString} 时从输入内容里剥离掩码字符后保存
- * （编辑流程：{@code WidgetConfigOption.applyNewValueToConfig} → {@code setValueFromString(文本框全文)}）。
- * 落盘经 {@link ApiKeyCrypto} 加密；换账号/离线导致解密失败时返回空（需重填）。
+ * <p>The text field always shows the mask - fixed length, all asterisks,
+ * UUID-shaped (its length says nothing about the real value, which never
+ * enters UI-readable text). The real plaintext is saved by
+ * {@link #setValueFromString(String)}, which strips the mask characters from
+ * the input (edit flow: {@code WidgetConfigOption.applyNewValueToConfig} ->
+ * {@code setValueFromString(full text field content)}).
+ * {@link #getAsJsonElement()} hands only the result of
+ * {@link ApiKeyCrypto#encrypt(String)} to the config file, while
+ * {@link #setValueFromJsonElement(JsonElement)} first restores via
+ * {@link ApiKeyCrypto#decrypt(String)}; so with key material present the
+ * config file never holds a bare key, but an encryption downgrade may store
+ * the plaintext as-is, and a machine change or corrupted data reads back
+ * empty.
  *
- * <p>误清空保护：输入被清空（剥离后为空）且已有真实值 → 视为未改动，防止焦点移开误清空；
- * 清空请使用配置项右侧的「重置」按钮。
+ * <p>Accidental-wipe guard: input that strips to empty while a real value
+ * already exists is treated as unchanged, so losing focus cannot wipe the
+ * key; clearing uses the "Reset" button next to the option.
  */
 public class ConfigApiKey extends ConfigString {
 
-    private static final char MASK_CHAR = '•'; // •
-    private static final String MASK = "••••••••";
+    private static final char MASK_CHAR = '*'; // *
+    private static final String MASK = "********-****-****-****-************";
 
-    /** 真实明文密钥——文本框里只显示掩码，明文全存这里，别的地方都不放。 */
-    private String plainValue = "";
+    /** The real plaintext key - the text field only shows the mask; the
+     * plaintext lives here and nowhere else */
+    private String plainValue;
 
+    /**
+     * Builds the masked option - plaintext starts from the default value; the
+     * display layer still only ever exposes the fixed-length mask.
+     *
+     * @param name MaLiLib config key name
+     * @param defaultValue default plaintext
+     */
     public ConfigApiKey(String name, String defaultValue) {
         super(name, defaultValue);
         this.plainValue = defaultValue;
     }
 
-    /** 文本框显示值：空则显示空，非空一律掩码——掩码定长，连长度也不泄露。 */
+    /** Text field display value: empty shows empty, anything else shows the
+     * mask - fixed length, not even the real length leaks */
     @Override
     public String getStringValue() {
         return this.plainValue.isEmpty() ? "" : MASK;
     }
 
-    /** 真实密钥明文（供查询逻辑使用），不带掩码——只有这一处能拿到真值。 */
+    /** The real plaintext key (for the query logic), unmasked - the only
+     * place to obtain the true value */
     public String getPlainValue() {
         return this.plainValue;
     }
 
     /**
-     * 从文本框输入（可能含掩码字符）解析明文并保存——编辑时用户看到的永远是掩码。
+     * Parses the plaintext from text field input (which may contain mask
+     * characters) and saves it - while editing, the user only ever sees the
+     * mask.
      *
-     * @param value 文本框的完整内容（可能包含掩码 {@code •} 与用户新输入）
+     * @param value the full content of the text field (mask {@code *} plus
+     *  any newly typed input)
      */
     @Override
     public void setValueFromString(String value) {
         String stripped = stripMask(value);
-        // 输入被清空（掩码被删光）但已有真实值 → 视为未改动：否则光标一移开密钥就没了；清空请用重置按钮
+        // Input stripped to empty (all mask chars deleted) but a real value
+        // exists: treat as unchanged, so losing focus cannot wipe the key
         if (stripped.isEmpty() && !this.plainValue.isEmpty()) {
             return;
         }
@@ -55,39 +80,62 @@ public class ConfigApiKey extends ConfigString {
         super.setValueFromString(stripped);
     }
 
+    /** Reset: drops the plaintext and the display back to the default,
+     * bypassing the accidental-wipe guard - otherwise Reset after typing a
+     * key is swallowed by the empty-value guard and does nothing */
     @Override
     public void resetToDefault() {
-        // 重置必须绕过「误清空保护」：直接落默认明文——否则输过密钥后点重置，会被上面的空值保护挡住不生效
+        // Bypass the accidental-wipe guard by writing the default plaintext
+        // directly: otherwise the guard would block Reset itself
         this.plainValue = this.getDefaultStringValue();
         super.setValueFromString(this.plainValue);
     }
 
+    /** Whether the value drifted from the default: compared by real
+     * plaintext - mask or length changes alone are not a difference
+     * (called on every keybind change) */
     @Override
     public boolean isModified() {
         return !this.plainValue.equals(this.getDefaultStringValue());
     }
 
     /**
-     * 重置按钮状态判定：按剥离掩码后的明文比，掩码本身不算差异（每次键盘输入都会调用）。
+     * Reset-button state check: compares after stripping the mask, since the
+     * mask itself is not a difference (called on every keystroke).
      *
-     * @param newValue 待比较的输入文本（可能含掩码字符）
-     * @return 与默认值不同则为 true
+     * @param newValue input text to compare (may contain mask characters)
+     * @return true when it differs from the default value
      */
     @Override
     public boolean isModified(String newValue) {
         return !this.getDefaultStringValue().equals(stripMask(newValue));
     }
 
-    /** 落盘：把明文经 {@link ApiKeyCrypto} 加密成 {@code enc:v1:...} 形式的 JSON 字符串，配置里不存裸钥。 */
+    /**
+     * Serializes only the encryptor's result to disk; {@link #plainValue}
+     * never goes straight to JSON.
+     *
+     * <p>Returns {@code enc:v1:...} when a machine or account key exists;
+     * when no key material is available or encryption throws,
+     * {@link ApiKeyCrypto#encrypt(String)} downgrades to the raw plaintext by
+     * contract, so this is not an absolute secrecy boundary.
+     *
+     * @return ciphertext JSON writable to the config file; may carry the raw
+     *  plaintext after an encryption downgrade
+     */
     @Override
     public JsonElement getAsJsonElement() {
         return new JsonPrimitive(ApiKeyCrypto.encrypt(this.plainValue));
     }
 
     /**
-     * 读盘：解密（旧版明文自动兼容）；解密失败（换账号等）→ 空，等玩家重填。
+     * Reads from disk: ciphertext is tried with the machine key first, then
+     * the account UUID; plaintext is accepted as-is. Decryption failure
+     * usually means a machine change, missing key material, or corrupted
+     * data - the value is then cleared and the player re-enters it.
      *
-     * @param element JSON 元素，须为字符串（明文或密文），否则视为空值
+     * @param element JSON element; must be a string (plaintext or
+     *  ciphertext), anything else counts as empty
      */
     @Override
     public void setValueFromJsonElement(JsonElement element) {
@@ -100,13 +148,16 @@ public class ConfigApiKey extends ConfigString {
         }
     }
 
-    /** 保持链式 {@code .apply(prefix)} 返回 ConfigApiKey：父类泛型 T 固定为 ConfigString，这里强转回来才能继续链式。 */
+    /** Keeps chained {@code .apply(prefix)} returning ConfigApiKey: the
+     * parent's generic T is fixed to ConfigString, so cast back to keep
+     * chaining */
     @Override
     public ConfigApiKey apply(String translationPrefix) {
         return (ConfigApiKey) super.apply(translationPrefix);
     }
 
-    /** 剥离掩码字符，留下用户实际输入的明文——掩码是显示层，不算真输入。 */
+    /** Strips mask characters, keeping the plaintext the user actually
+     * typed - the mask is display layer, not input */
     private static String stripMask(String s) {
         if (s == null || s.isEmpty()) {
             return "";

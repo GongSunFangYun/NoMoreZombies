@@ -17,18 +17,26 @@ import java.time.Duration;
 import java.util.Base64;
 
 /**
- * 玩家数据查询的请求层——对外只认 Mojang 与 Hypixel 两家 HTTP API：
- * Mojang 负责「玩家名 → UUID / 皮肤」，Hypixel 负责「UUID → 玩家 Zombies 数据」。
+ * Request layer for player data lookup—speaks only to Mojang and Hypixel
+ * over HTTP: Mojang for name→UUID/skin, Hypixel for UUID→player Zombies
+ * stats. Every method blocks; callers hand them to a background thread.
  *
- * <p>共用单例 {@link HttpClient}，连接 / 请求均 5 秒超时，宁快断不干等；全部是阻塞方法，
- * 由调用方丢到后台线程。错误不抛异常，统一映射成 {@link ApiResult} 让界面直接 translate
- * （翻译 key 见 {@code nomorezombies.query.*}）。
+ * <p>One shared {@link HttpClient} singleton; connect and request timeouts
+ * are both 5 seconds—fail fast rather than hang, since one in-game query
+ * waits on up to four players and 5 seconds is the experience ceiling, not
+ * a throughput tuning. The JDK client buffers each response body whole; no
+ * byte cap is set here. Errors never throw—they map to {@link ApiResult}
+ * for the UI to translate (keys under {@code nomorezombies.query.*}). Name
+ * resolution and skin caching belong to the caller
+ * (QueryDataManager/AvatarUtils); this layer holds no cache.
  */
 public final class HypixelApiClient {
 
     private static final Duration TIMEOUT = Duration.ofSeconds(5);
     private static final String USER_AGENT = "NoMoreZombies/1.0";
 
+    /** Process-wide HttpClient singleton—5-second connect timeout, and
+     *  every request reuses it. */
     private static final HttpClient HTTP = HttpClient.newBuilder()
             .connectTimeout(TIMEOUT)
             .build();
@@ -37,12 +45,16 @@ public final class HypixelApiClient {
     }
 
     /**
-     * 通过 Mojang API 把玩家名解析成 UUID（无连字符、小写）。
-     * 名字不存在 / 触发限流 / 响应非 200 / 网络异常时一律返回 null，让调用方自行提示。
-     * 调的是 {@code POST /profiles/minecraft}，只取返回数组里的首个玩家。
+     * Resolves a player name to a UUID (no hyphens, lowercase) through the
+     * Mojang API. Missing name, rate limit, non-200, and network or JSON
+     * error all return null, letting the caller decide the message. Blocks
+     * the calling thread. The POST body is a single-element JSON array;
+     * {@code name} is spliced into the JSON without escaping, and only the
+     * first player in the response array is used.
      *
-     * @param name 玩家名
-     * @return 无连字符 UUID；解析失败返回 null
+     * @param name player name; the caller must guarantee no JSON escaping is
+     *   needed
+     * @return a hyphen-less UUID, or {@code null} on failure
      */
     public static String resolveUuid(String name) {
         try {
@@ -69,12 +81,21 @@ public final class HypixelApiClient {
     }
 
     /**
-     * 拉取某玩家的完整数据并解析成 Zombies 统计。
-     * HTTP 状态码、Hypixel 的 {@code success=false}、缺 player / Arcade 节点，
-     * 都被翻译成对应的 {@link ApiResult} 错误（见 {@code nomorezombies.query.*}）。
+     * Fetches one player's full data and parses it into Zombies stats. The
+     * UUID goes in the {@code uuid} query, the API key in the {@code API-Key}
+     * header. Blocks the calling thread until a response or the 5-second
+     * timeout. 403 maps to an invalid key, 429 to rate limiting, any other
+     * non-200 to an HTTP error; {@code success=false}, a missing
+     * {@code player}, and a missing {@code Arcade} node each map to a
+     * {@code nomorezombies.query.*} key. I/O, parse, and interrupt all map
+     * to a network error; on interrupt the thread's interrupt flag is
+     * restored.
      *
-     * @param uuidNoHyphen 无连字符 UUID
-     * @param apiKey       Hypixel API Key
+     * @param uuidNoHyphen hyphen-less UUID; not URL-encoded, so the caller
+     *   must pass a valid value
+     * @param apiKey Hypixel API key, written to the {@code API-Key} header
+     *   as-is
+     * @return a success or error result, never {@code null}
      */
     public static ApiResult fetchPlayer(String uuidNoHyphen, String apiKey) {
         try {
@@ -126,11 +147,13 @@ public final class HypixelApiClient {
     }
 
     /**
-     * 从会话服务器取皮肤 URL——base64 的 textures 属性要先解出来、再翻一层 JSON 才能拿到。
-     * 状态码非 200 / 缺 properties / 没有 SKIN 纹理都返回 null。
+     * Fetches the skin URL from the session server—the base64 {@code textures}
+     * property has to be decoded first, then its inner JSON parsed. A
+     * non-200, missing {@code properties}, or no {@code SKIN} texture all
+     * return null.
      *
-     * @param uuidHyphen 带连字符 UUID
-     * @return 皮肤 PNG 的 https URL；失败返回 null
+     * @param uuidHyphen hyphenated UUID
+     * @return the skin PNG's https URL; null on failure
      */
     public static String fetchSkinUrl(String uuidHyphen) {
         try {

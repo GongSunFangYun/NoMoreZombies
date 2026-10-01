@@ -3,45 +3,62 @@ package cn.gsfy.nmz.client.data.model;
 import java.util.List;
 
 /**
- * AA（外星游乐园）单回合指挥详情——对应 aa_round_details.json 里的一条。
+ * Command detail for one Alien Arcadium (AA) round—one entry in
+ * {@code aa_round_details.json}.
  *
- * <p>供「外星游乐园自动指挥」HUD 与聊天输出用：推荐站位、巨人 / 上古者是否出没、
- * 危险等级都由 AaCommander 读它来组织每回合的提示。
+ * <p>{@code AAAutoCommand} reads this to build the per-round prompt for
+ * the "AA auto-command" HUD and chat output: recommended positions,
+ * whether a Giant or an Old One spawns, and the danger level.
  */
 public class AaRoundDetail {
 
     private final int round;
-    /** 推荐站位点（解析时已滤掉空串，按 #1/#2/#3 顺序展示）。 */
-    private final List<String> recommendedSpots;
+    /** Recommended positions, held by reference. The caller owns the
+     *  list, its content, and its order. */
+    private final List<String> recommendedPoints;
     private final boolean hasGiant;
     private final boolean hasOldOne;
-    /** 回合危险等级（1~5，对应绿 / 黄 / 橙 / 红 / 紫五档颜色）。 */
+    /** Round danger level, 1–5. Each level maps to a color in
+     *  {@code AAAutoCommand}: green, dark green, yellow, red, purple. */
     private final int dangerLevel;
 
-    public AaRoundDetail(int round, List<String> recommendedSpots, boolean hasGiant, boolean hasOldOne, int dangerLevel) {
+    /**
+     * @param round round number
+     * @param recommendedPoints recommended positions
+     * @param hasGiant whether a Giant spawns this round
+     * @param hasOldOne whether an Old One spawns this round
+     * @param dangerLevel danger level; the constructor does not range-check it
+     */
+    public AaRoundDetail(int round, List<String> recommendedPoints, boolean hasGiant, boolean hasOldOne, int dangerLevel) {
         this.round = round;
-        this.recommendedSpots = recommendedSpots;
+        this.recommendedPoints = recommendedPoints;
         this.hasGiant = hasGiant;
         this.hasOldOne = hasOldOne;
         this.dangerLevel = dangerLevel;
     }
 
+    /** Round number. */
     public int getRound() {
         return round;
     }
 
-    public List<String> getRecommendedSpots() {
-        return recommendedSpots;
+    /** Recommended positions. Returns the internal list, not a copy.
+     *  May be {@code null}, and its content is still mutable. */
+    public List<String> getRecommendedPoints() {
+        return recommendedPoints;
     }
 
+    /** Whether a Giant spawns this round. */
     public boolean hasGiant() {
         return hasGiant;
     }
 
+    /** Whether an Old One spawns this round. */
     public boolean hasOldOne() {
         return hasOldOne;
     }
 
+    /** Danger level, 1–5. */
     public int getDangerLevel() {
         return dangerLevel;
     }

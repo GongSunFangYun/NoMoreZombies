@@ -9,74 +9,99 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * 本地化默认模板配置项（继承 ConfigString）——AA 聊天模板的默认值随客户端语言走
- * （翻译键 {@code nomorezombies.aacommand.defaultTemplate}）。模板为空/非法时由
- * {@code AaCommander.resolveTemplate()} 回退到同一翻译键；这里让配置界面「重置」按钮
- * 填入当前语言模板，而不是填个空串。
+ * Locale-aware default template config option (extends ConfigString) - the
+ * AA chat template's default follows the client language (translation key
+ * {@code nomorezombies.aaautocommand.defaultTemplate}). When the template is
+ * empty/invalid, {@code AAAutoCommand.resolveTemplate()} falls back to the
+ * same translation key; the config screen's "Reset" button fills the
+ * current-language template here instead of an empty string.
  *
- * <p>同时扛起「客户端语言切换自动重写」：只要当前值还是<b>旧语言</b>的默认模板
- * （说明用户没自定义过），语言一切就自动改写成新语言默认模板并落盘；用户自定义过则不动。
- * 之所以要在这份硬编码默认值里查旧语言，是因为切换瞬间 {@code Text.translatable} 已返回新文案，
- * 旧语言默认值只有这里还留着。
+ * <p>Also owns "auto-rewrite on client language switch": as long as the
+ * current value is still the <b>old language's</b> default template (the
+ * user never customized it), a language switch rewrites it to the new
+ * language's default and saves; a customized value is left alone. The old
+ * default has to be looked up in the hardcoded map because at the moment of
+ * the switch {@code Text.translatable} already returns the new text - only
+ * this map still holds the old language's default.
  */
 public class I18nTemplateConfig extends ConfigString {
 
     /**
-     * 各语言默认模板的硬编码副本。与 lang 文件 {@code nomorezombies.aacommand.defaultTemplate} 的
-     * 双语文案<b>必须保持同步</b>（改 lang 需同步此处，反之亦然）——语言切换重写依赖这份值，
-     * 因为切换瞬间 {@code Text.translatable} 已经返回新语言文案，旧语言默认值只能在这查到。
+     * Hardcoded per-language default templates. <b>Must stay in sync</b> with
+     * the bilingual text of {@code nomorezombies.aaautocommand.defaultTemplate}
+     * in the lang files (edit both together). The language-switch rewrite
+     * depends on these values: at the moment of the switch
+     * {@code Text.translatable} already returns the new language's text, so
+     * the old language's default is only findable here.
      */
     private static final Map<String, String> LOCALE_DEFAULTS = new HashMap<>();
 
     static {
         LOCALE_DEFAULTS.put("zh_cn",
-                "回合 {round}, 推荐点位 {point}, 刷新高危怪物 {boss}, 难度 {difficulty}");
+                "回合{round},推荐点位{point},刷新高危怪物{boss},难度{difficulty}");
         LOCALE_DEFAULTS.put("en_us",
                 "Round {round}, Points {point}, Boss {boss}, Difficulty {difficulty}");
     }
 
-    /** 上次处理时的客户端语言；null = 尚未初始化——首个 tick 只记录、不重写，避免刚启动就乱动配置。 */
+    /** Client language from the last check; null = not yet initialized - the
+     * first tick records the language and also migrates a default template
+     * saved under another language to the current default (custom values
+     * stay) */
     private String lastLanguage = null;
 
-    /** 构造：父类默认值给空串，真正默认值由 {@link #defaultTemplate()} 按当前语言现算。 */
+    /**
+     * Builds the template option whose default follows the language - the
+     * parent default is left empty; the real default is computed on read.
+     *
+     * @param name MaLiLib config key name
+     */
     public I18nTemplateConfig(String name) {
         super(name, "", "");
     }
 
-    /** 保持链式 {@code .apply(prefix)} 返回 I18nTemplateConfig，才能一路链式调下去。 */
+    /** Keeps chained {@code .apply(prefix)} returning I18nTemplateConfig so
+     * the chain can continue */
     @Override
     public I18nTemplateConfig apply(String translationPrefix) {
         return (I18nTemplateConfig) super.apply(translationPrefix);
     }
 
-    /** 默认值随语言走：配置界面显示与「重置」都拿当前语言模板。 */
+    /** Default follows the language: config screen display and "Reset" both
+     * use the current-language template */
     @Override
     public String getDefaultStringValue() {
         return defaultTemplate();
     }
 
-    /** 重置：把当前语言默认模板填回去（自动重写只发生在语言切换时）。 */
+    /** Reset: fills back the current-language default template (the
+     * auto-rewrite only fires on an actual language switch) */
     @Override
     public void resetToDefault() {
         super.setValueFromString(defaultTemplate());
     }
 
-    /** 是否改过默认值：与当前语言默认模板比，不同即自定义过。 */
+    /** Whether the value was customized: anything differing from the
+     * current-language default template counts as customized */
     @Override
     public boolean isModified() {
         return !this.getStringValue().equals(defaultTemplate());
     }
 
-    /** 重置按钮判定：直接与当前语言默认模板比对，掩码/输入过程无关。 */
+    /** Reset-button check: compares directly against the current-language
+     * default; mask/typing state is irrelevant */
     @Override
     public boolean isModified(String newValue) {
         return !defaultTemplate().equals(newValue);
     }
 
     /**
-     * 每 tick 由 {@code NoMoreZombiesClient} 调用：盯客户端语言变化。
-     * 若当前值仍是<b>旧语言</b>的默认模板（用户未自定义），自动重写为新语言默认模板并落盘；
-     * 用户自定义模板（≠ 任一语言默认）不受影响。首帧只记录当前语言，不重写。
+     * Called every tick by {@code NoMoreZombiesClient}: watches the client
+     * language. If the current value is still the <b>old language's</b>
+     * default template (user never customized), it is rewritten to the new
+     * language's default and saved; a customized template (matching no
+     * language default) is untouched. The first tick records the language
+     * and also migrates a default template saved under another language to
+     * the current default (custom values stay).
      */
     public void checkLanguageChanged() {
         MinecraftClient client = MinecraftClient.getInstance();
@@ -90,7 +115,8 @@ public class I18nTemplateConfig extends ConfigString {
 
         if (lastLanguage == null) {
             lastLanguage = lang;
-            // 首次加载：若值恰是「非当前语言」的默认模板（上次在旧语言下保存的默认），顺带迁到当前语言
+            // First load: if the value is another language's default template,
+            // migrate it to the current language
             for (Map.Entry<String, String> e : LOCALE_DEFAULTS.entrySet()) {
                 if (!e.getKey().equals(lang) && this.getStringValue().equals(e.getValue())) {
                     rewriteTo(lang, e.getKey());
@@ -106,12 +132,16 @@ public class I18nTemplateConfig extends ConfigString {
         String oldLang = lastLanguage;
         lastLanguage = lang;
         String oldDefault = LOCALE_DEFAULTS.get(oldLang);
-        if (oldDefault != null && this.getStringValue().equals(oldDefault)) {
+        // getStringValue() never returns null (MaLiLib ConfigString contract),
+        // so only oldDefault needs a null check
+        if (this.getStringValue().equals(oldDefault)) {
             rewriteTo(lang, oldLang);
         }
     }
 
-    /** 把模板值改写为新语言默认并落盘；新默认与当前值相同（已在目标语言）则跳过。 */
+    /** Rewrites the template to the new language's default and saves; skipped
+     * when the new default equals the current value (already in the target
+     * language) */
     private void rewriteTo(String lang, String oldLang) {
         String newDefault = LOCALE_DEFAULTS.get(lang);
         if (newDefault == null || newDefault.equals(this.getStringValue())) {
@@ -119,12 +149,13 @@ public class I18nTemplateConfig extends ConfigString {
         }
         this.setValueFromString(newDefault);
         GlobalConfig.saveToFile();
-        NoMoreZombies.LOGGER.info("[AA指挥] 客户端语言 {} → {}，AA 聊天模板已自动重写为 {} 语言默认版本",
+        NoMoreZombies.LOGGER.info("[AA自动指挥] 客户端语言 {} → {}，AA 聊天模板已自动重写为 {} 语言默认版本",
                 oldLang, lang, lang);
     }
 
-    /** 当前语言默认模板：直接读翻译键，模板为空/非法时由 AaCommander 回退到同一处。 */
+    /** Current-language default template: reads the translation key directly;
+     * AAAutoCommand falls back to the same place for empty/invalid templates */
     private static String defaultTemplate() {
-        return Text.translatable("nomorezombies.aacommand.defaultTemplate").getString();
+        return Text.translatable("nomorezombies.aaautocommand.defaultTemplate").getString();
     }
 }

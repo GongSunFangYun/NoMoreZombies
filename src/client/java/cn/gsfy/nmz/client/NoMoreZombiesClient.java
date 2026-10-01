@@ -1,151 +1,213 @@
 package cn.gsfy.nmz.client;
 
-import cn.gsfy.nmz.NoMoreZombies;
 import cn.gsfy.nmz.client.config.GlobalConfig;
 import cn.gsfy.nmz.client.config.InitHandler;
+import cn.gsfy.nmz.client.config.hud.RegisterHUD;
 import cn.gsfy.nmz.client.data.DataManager;
-import cn.gsfy.nmz.client.feature.esp.EspRenderer;
-import cn.gsfy.nmz.client.feature.freecam.FreeCameraHandler;
-import cn.gsfy.nmz.client.feature.gamehud.AaCommander;
-import cn.gsfy.nmz.client.feature.gamehud.CpsRenderer;
-import cn.gsfy.nmz.client.feature.gamehud.LightningRodQueue;
-import cn.gsfy.nmz.client.feature.gamehud.PowerupRenderer;
-import cn.gsfy.nmz.client.feature.gamehud.SpawnTimeRenderer;
-import cn.gsfy.nmz.client.feature.gamehud.TeamStatsRenderer;
-import cn.gsfy.nmz.client.feature.gamehud.TimeHudRenderer;
-import cn.gsfy.nmz.client.feature.gamehud.TotalHUDRenderer;
-import cn.gsfy.nmz.client.feature.healthbar.HealthBarRenderer;
-import cn.gsfy.nmz.client.feature.invisibility.HideNearbyPlayer;
-import cn.gsfy.nmz.client.feature.playerquery.PlayerQueryManager;
-import cn.gsfy.nmz.client.feature.powerups.PowerupDetect;
-import cn.gsfy.nmz.client.feature.spawntimes.CheckSpawnTimes;
-import cn.gsfy.nmz.client.feature.spawntimes.SpawnNotice;
-import cn.gsfy.nmz.client.feature.stats.TeamStatsManager;
-import cn.gsfy.nmz.client.feature.zoom.ZoomHandler;
-import cn.gsfy.nmz.client.shared.DelayedTaskScheduler;
-import cn.gsfy.nmz.client.shared.EspTargets;
-import cn.gsfy.nmz.client.shared.GameEventBus;
-import cn.gsfy.nmz.client.shared.GameTickHandler;
-import cn.gsfy.nmz.client.shared.ScoreboardManager;
-import cn.gsfy.nmz.client.util.LanguageUtils;
-import cn.gsfy.nmz.client.util.StringUtils;
+import cn.gsfy.nmz.client.features.damagenumber.DamageNumberRenderer;
+import cn.gsfy.nmz.client.features.damagenumber.DamageNumberTracker;
+import cn.gsfy.nmz.client.features.esp.EspRenderer;
+import cn.gsfy.nmz.client.features.freecam.FreeCameraHandler;
+import cn.gsfy.nmz.client.features.gamehud.AAAutoCommand;
+import cn.gsfy.nmz.client.features.gamehud.CpsRenderer;
+import cn.gsfy.nmz.client.features.gamehud.GlobalOverviewRenderer;
+import cn.gsfy.nmz.client.features.gamehud.LightningRodQueue;
+import cn.gsfy.nmz.client.features.gamehud.PowerupRenderer;
+import cn.gsfy.nmz.client.features.gamehud.RollStatsRenderer;
+import cn.gsfy.nmz.client.features.gamehud.SpawnTimeRenderer;
+import cn.gsfy.nmz.client.features.gamehud.StatusEffectHudRenderer;
+import cn.gsfy.nmz.client.features.gamehud.TeamStatsRenderer;
+import cn.gsfy.nmz.client.features.gamehud.TimeHudRenderer;
+import cn.gsfy.nmz.client.features.gamehud.TotalHUDRenderer;
+import cn.gsfy.nmz.client.features.healthbar.HealthBarRenderer;
+import cn.gsfy.nmz.client.features.invisibility.HideNearbyPlayer;
+import cn.gsfy.nmz.client.features.querydata.QueryDataManager;
+import cn.gsfy.nmz.client.features.powerups.PowerupDetect;
+import cn.gsfy.nmz.client.features.rolls.RollStats;
+import cn.gsfy.nmz.client.features.spawntimes.CheckSpawnTimes;
+import cn.gsfy.nmz.client.features.spawntimes.SpawnNotice;
+import cn.gsfy.nmz.client.features.stats.TeamStatsManager;
+import cn.gsfy.nmz.client.features.zoom.ZoomHandler;
+import cn.gsfy.nmz.client.shared.game.DelayedTaskScheduler;
+import cn.gsfy.nmz.client.shared.esp.EspTargets;
+import cn.gsfy.nmz.client.shared.game.GameTickHandler;
+import cn.gsfy.nmz.client.shared.game.ScoreboardManager;
+import cn.gsfy.nmz.client.utils.LanguageUtils;
+import cn.gsfy.nmz.client.utils.StringUtils;
 import fi.dy.masa.malilib.event.InitializationHandler;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
-import net.fabricmc.fabric.api.client.rendering.v1.HudLayerRegistrationCallback;
-import net.fabricmc.fabric.api.client.rendering.v1.IdentifiedLayer;
-import net.minecraft.util.Identifier;
 
 /**
- * 客户端模组入口（Fabric {@link ClientModInitializer}）——所有功能从这里站起来。
+ * Client mod entry (Fabric {@link ClientModInitializer}) - every feature
+ * stands up from here.
  *
- * <p>{@link #onInitializeClient()} 按「先基座、后功能」的顺序把整台机器点亮：
- * 先接 MaLiLib（配置与热键）、数据表与地图解析，再挂聊天 / 进服 / 断线三个事件入口，
- * 最后逐一把各功能（波次、道具、HUD、队伍统计、ESP…）初始化。注册顺序就是初始化
- * 优先级，功能间的依赖靠各单例的 {@code init()} 收口——谁先 init 谁先可用。
+ * <p>{@link #onInitializeClient()} lights the machine up in "foundation
+ * first, features after" order: MaLiLib (configs and hotkeys), the data
+ * tables and the HUD registry, then the three event hooks (chat / join /
+ * disconnect), and finally each feature (waves, powerups, HUD, team stats,
+ * ESP, ...) one by one. Registration order is initialization priority;
+ * cross-feature dependencies settle in each singleton's {@code init()} -
+ * whoever inits first is usable first.
+ *
+ * <p>Two hard ordering constraints: <b>the HUD registry must come before any
+ * editor is constructed</b> (editors know only the registry, not concrete
+ * HUDs), and <b>the core foundation must come before features</b> (the
+ * scoreboard poll feeds isInZombies and the wall clock feeds waves and
+ * timers; callbacks attached in a feature's init read them immediately).
+ * There are exactly three event hooks and none contain business logic:
+ * chat messages are dispatched in a fixed order to powerup detection /
+ * team stats / roll stats (each owns its own state, no cross-dependency;
+ * order only affects same-tick visibility); JOIN only resets powerup
+ * patterns (patterns are observed per round, void on entering a new world);
+ * DISCONNECT resets in "environment caches -> timers -> per-feature state"
+ * order - miss one step and the last round's leftovers leak into the next.
  */
 public class NoMoreZombiesClient implements ClientModInitializer {
 
+    /** Client entry: hook up MaLiLib, load the data tables/maps, attach the
+     *  event hooks, then light up the feature singletons in dependency order */
     @Override
     public void onInitializeClient() {
-        // MaLiLib：注册初始化处理器——配置加载与热键注册都等它在 onGameInitDone 统一收口
+        // MaLiLib: register the init handler - config loading and hotkey
+        // registration both settle in its onGameInitDone
         InitializationHandler.getInstance().registerInitializationHandler(new InitHandler());
 
-        // 数据表（F3+T 资源重载时一并重读）
+        // Data tables (re-read along with F3+T resource reloads)
         DataManager.init();
 
-        // 地图识别完成时立刻重同步 AA 专属 HUD 的可见性：AA 自动启用、非 AA 自动禁用，
-        // 补上「回合标题比地图识别更早、首轮同步还没跑完」那段窗口
-        LanguageUtils.onMapResolved(GameEventBus::resyncAaHudVisibility);
+        // HUD registry: registers the read/write ports, default positions and
+        // samples of the 11 built-in HUDs into RegisterHUD.
+        // Must run before any HUDEditor is constructed (editors know only the
+        // registry, not concrete HUDs);
+        // idempotent - the editor side guards once more, a repeat call only
+        // logs one WARN
+        RegisterHUD.registerBuiltins();
 
-        // 晚渲染层：把位于聊天区的 HUD（如电击棒队列）挂到聊天层之后，免得被聊天背景盖住
-        HudLayerRegistrationCallback.EVENT.register(drawer ->
-                drawer.attachLayerAfter(IdentifiedLayer.CHAT, IdentifiedLayer.of(
-                        Identifier.of(NoMoreZombies.MOD_ID, "late_hud"),
-                        (context, tickCounter) -> TotalHUDRenderer.renderLateHud(context, tickCounter))));
-
-        // 核心基座：计分板轮询、墙钟、延迟任务
+        // Core foundation: scoreboard polling, wall clock, delayed tasks
         new GameTickHandler().init();
         new DelayedTaskScheduler().init();
         new ScoreboardManager().init();
 
-        // 聊天消息统一入口：按功能分发（道具 / 复活 / 难度 / 队伍统计）
+        // Unified chat entry: dispatches by feature (powerups/revives/team
+        // stats/roll stats).
+        // Uses the GAME event, not the ChatHud render layer: Lucky Chest
+        // filtering blocks rendering only, not this path - filtered messages
+        // must still feed roll stats
         ClientReceiveMessageEvents.GAME.register((message, overlay) -> {
             String raw = StringUtils.getRaw(message);
             if (PowerupDetect.get() != null) {
                 PowerupDetect.get().onChatReceived(raw);
             }
             TeamStatsManager.onChatReceived(raw);
+            RollStats.onChatReceived(raw);
         });
 
-        // 状态清理：进世界重置 / 断线复位
+        // State cleanup: reset on world join / full reset on disconnect
         ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> {
             if (PowerupDetect.get() != null) {
                 PowerupDetect.get().iniPowerupPatterns();
             }
         });
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
+            // Clear the scoreboard cache first: it is the sole data source of
+            // isInZombies(); resetting the environment verdict first lets the
+            // per-feature resets below see "already left the game"
             ScoreboardManager.get().clear();
             GameTickHandler.get().setGameStarted(false);
             LanguageUtils.invalidateMapCache();
             TotalHUDRenderer.setShouldRender(false);
-            PlayerQueryManager.get().clearCache();
+            QueryDataManager.get().clearCache();
+            // Disconnect: zero this round's roll stats - cross-round leftovers
+            // would book the last round's draws into the new one
+            RollStats.reset();
             if (PowerupDetect.get() != null) {
                 PowerupDetect.get().iniPowerupPatterns();
             }
-            // 断线：挂起的延迟任务全取消——不取消的话，残留任务会在新局里乱跑
+            // Disconnect: cancel all pending delayed tasks - otherwise
+            // leftovers fire wildly inside the new round
             if (DelayedTaskScheduler.get() != null) {
                 DelayedTaskScheduler.get().cancelAll();
             }
-            // 断线：自由视角立刻还原——否则相机残留会把视角卡死
-            FreeCameraHandler.INSTANCE.forceDisable();
+            // Disconnect: restore freecam at once - camera residue would jam
+            // the view
+            FreeCameraHandler.forceDisable();
+            // Disconnect: drop damage numbers and the health baseline - a
+            // stale baseline makes a burst of fake numbers on re-entry
+            DamageNumberTracker.clear();
         });
 
-        // 波次计时：核心逻辑 + HUD + 整秒音效
+        // Wave timing: core logic + HUD + whole-second sounds
         new CheckSpawnTimes().init();
         new SpawnTimeRenderer().init();
         SpawnNotice.update(0);
 
-        // 常驻计时 HUD（总游戏时长 + 本回合）
+        // Persistent timer HUD (total game time + current round)
         new TimeHudRenderer().init();
 
-        // 道具：检测引擎 + HUD
+        // Powerups: detection engine + HUD
         new PowerupDetect().init();
         new PowerupRenderer().init();
 
-        // 侧边栏 / 计时 / 电击棒队列（LR）
+        // Sidebar/timer/lightning rod queue (LR)
         new LightningRodQueue().init();
 
-        // 外星游乐园自动指挥（HUD + 每回合聊天输出）
-        new AaCommander().init();
+        // Alien Arcadium auto-command (HUD + per-round chat output)
+        new AAAutoCommand().init();
 
-        // AA 指挥：客户端语言切换时自动把模板配置重写为对应语言默认版本（未自定义才重写）
-        ClientTickEvents.START_CLIENT_TICK.register(client -> GlobalConfig.AaCommand.TEMPLATE.checkLanguageChanged());
+        // AA auto-command: on client language switch, rewrite the template
+        // config to the new language's default (only when never customized)
+        ClientTickEvents.START_CLIENT_TICK.register(client -> GlobalConfig.AAAutoCommand.TEMPLATE.checkLanguageChanged());
 
-        // 左右键 CPS 统计 HUD
+        // Left/right click CPS HUD
         new CpsRenderer().init();
 
-        // 平滑缩放（FOV 除法，仅 Zombies 局内）
+        // Global overview HUD (current + next 5 rounds, a 6-column boss/
+        // powerup spawn table, static-table driven)
+        new GlobalOverviewRenderer().init();
+
+        // Status effect HUD (potion effect text list; replaces the vanilla
+        // effect HUD inside Zombies rounds only)
+        new StatusEffectHudRenderer().init();
+
+        // Smooth zoom (FOV division, inside Zombies rounds only)
         ZoomHandler.INSTANCE.init();
 
-        // 自由视角（替身相机实体，每 tick 轮询启停，仅 Zombies 局内）
+        // Freecam (stand-in camera entity, per-tick start/stop polling, inside
+        // Zombies rounds only)
         FreeCameraHandler.INSTANCE.init();
 
-        // 战斗 / 视觉类 feature
+        // Combat/visual feature
         new HideNearbyPlayer().init();
 
-        // 队伍统计：事件接入层（每 tick 扫描实体快照 + 聊天解析）→ 数据 / 状态机 → HUD
+        // Team stats: event intake (per-tick entity snapshot scan + chat
+        // parsing) -> data/state machine -> HUD
         new TeamStatsManager().init();
         new TeamStatsRenderer().init();
 
-        // 玩家数据查询：局内缓存管理（开局自动请求 / 结束销毁缓存 / tick 自动清理）
-        new PlayerQueryManager().init();
+        // Roll stats: chat parsing -> per-round counts and round table -> HUD
+        // (leaving the game resets it via the tick callback in RollStats.init())
+        RollStats.init();
+        new RollStatsRenderer().init();
 
-        // 实体 ESP（箱体线框）+ 共享目标扫描 + 怪物血条
+        // Player data query: in-round cache management (auto-request at round
+        // start, cache destroyed at round end, tick-driven cleanup)
+        new QueryDataManager().init();
+
+        // Register the ESP trio together: they share one target scan
+        // (EspTargets scans every 10 ticks), renderers only read the cache,
+        // and the health bar and damage numbers reuse its refresh window
         EspTargets.init();
         EspRenderer.init();
         HealthBarRenderer.init();
+
+        // Damage/heal numbers: per-tick health diffing produces the numbers,
+        // AFTER_ENTITIES draws them in world space.
+        // The pair has no mixin: gating self-checks in each init (master
+        // switch + isInZombies)
+        DamageNumberTracker.init();
+        DamageNumberRenderer.init();
     }
 }

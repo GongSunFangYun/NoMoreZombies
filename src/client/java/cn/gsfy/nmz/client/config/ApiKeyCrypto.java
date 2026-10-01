@@ -17,17 +17,25 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * API Key 落盘加密（本地混淆级防护）——让明文不直接躺在配置文件里，眼不见为净。
+ * At-rest encryption for the API Key (local obfuscation-grade protection):
+ * keeps the plaintext from sitting directly in the config file.
  *
- * <p>算法是 AES-256/GCM/NoPadding，密钥由 PBKDF2WithHmacSHA256 从本机 MachineGuid 派生
- * （Windows 注册表 {@code HKLM\SOFTWARE\Microsoft\Cryptography}，本机固定、与账号无关，
- * 固定应用盐 + 65536 次迭代），<b>不额外存储任何密钥材料</b>——所以密文格式固定为
- * {@code enc:v1:<base64(iv||ciphertext+tag)>}：切任意账号都能解密（密钥只绑机器），
- * 换机器则解不开（返回空，需重填）。
+ * <p>AES-256/GCM/NoPadding, with the key derived by PBKDF2WithHmacSHA256
+ * from the local MachineGuid (Windows registry
+ * {@code HKLM\SOFTWARE\Microsoft\Cryptography}, fixed per machine and
+ * account independent, fixed app salt + 65536 iterations). <b>No key
+ * material is stored anywhere else</b>, so the ciphertext format is fixed
+ * as {@code enc:v1:base64(iv||ciphertext+tag)}: any account can decrypt
+ * (the key is bound to the machine only); on another machine decryption
+ * fails (returns empty, the key must be re-entered).
  *
- * <p>安全边界（如实说明）：MachineGuid 本机注册表直读就能拿到，所以这是「防本地明文直读」
- * 的混淆级防护，不是强密码学保护——任何能读注册表 / 在本机跑代码的人都能解开 Key。
- * 这是不额外存密钥材料的固有取舍；非 Windows 或 MachineGuid 读取失败时回退账号会话 UUID（旧行为）。
+ * <p>Security boundary, stated honestly: MachineGuid is readable straight
+ * from the local registry, so this is obfuscation against local plaintext
+ * reading, not strong cryptography - anyone who can read the registry or
+ * run code on this machine can recover the Key.
+ * That trade-off is inherent to storing no key material; on non-Windows,
+ * or when the MachineGuid read fails, the fallback is the account session
+ * UUID, which binds to the account only, not the machine.
  */
 public final class ApiKeyCrypto {
 
@@ -39,16 +47,19 @@ public final class ApiKeyCrypto {
     private static final int TAG_LENGTH = 128;
     private static final String TRANSFORMATION = "AES/GCM/NoPadding";
 
-    /** MachineGuid 缓存：同一进程只读一次注册表，重复读浪费且可能读到半截。 */
+    /** MachineGuid cache: the registry is read once per process; repeat
+     * reads are wasteful and can catch a half-written value */
     private static String cachedMachineGuid;
-    /** UUID 形状匹配（MachineGuid 与玩家 UUID 都是该格式）：从 reg 输出里直接抠，不怕系统代码页。 */
+    /** UUID-shape match (MachineGuid and player UUIDs share this format):
+     * pulled straight from the reg output, immune to the system code page */
     private static final Pattern UUID_PATTERN = Pattern.compile(
             "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}");
 
     private ApiKeyCrypto() {
     }
 
-    /** 用给定密钥材料派生 AES 密钥：PBKDF2WithHmacSHA256 + 固定盐 + 65536 迭代，材料统一喂给这一处。 */
+    /** Derive the AES key from the given secret: PBKDF2WithHmacSHA256,
+     * fixed salt + 65536 iterations; all secrets funnel through here */
     private static SecretKeySpec deriveKey(String secret) {
         if (secret == null || secret.isEmpty()) {
             return null;
@@ -65,8 +76,10 @@ public final class ApiKeyCrypto {
         }
     }
 
-    /** 机器级密钥材料 = Windows MachineGuid（注册表，本机固定、与账号无关），换号不解锁；
-     * 非 Windows / 读取失败返回 null，交给调用方决定回退。 */
+    /** Machine-level secret = Windows MachineGuid (registry, fixed per
+     * machine, account independent), so switching accounts keeps the Key
+     * unlocked. Returns null on non-Windows / read failure; the caller
+     * decides the fallback */
     private static String machineGuid() {
         if (cachedMachineGuid != null) {
             return cachedMachineGuid;
@@ -79,13 +92,17 @@ public final class ApiKeyCrypto {
             Process p = new ProcessBuilder("reg", "query",
                     "HKLM\\SOFTWARE\\Microsoft\\Cryptography", "/v", "MachineGuid")
                     .redirectErrorStream(true).start();
-            // 防子进程挂起：reg 最多等 3 秒，超时就强杀——读不到就当拿不到，别卡住加密
+            // Guard against a hung child process: give reg at most 3 seconds,
+            // then force-kill - an unreadable value counts as no value, and
+            // encryption must not stall on it
             if (!p.waitFor(3, TimeUnit.SECONDS)) {
                 p.destroyForcibly();
                 return null;
             }
             String output = new String(p.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
-            // reg 输出编码随系统代码页变化，但 MachineGuid 恒为 UUID 形状，用正则抠最稳
+            // reg output encoding varies with the system code page, but
+            // MachineGuid is always UUID-shaped; a regex pull is the most
+            // robust extraction
             Matcher m = UUID_PATTERN.matcher(output);
             if (m.find()) {
                 cachedMachineGuid = m.group().toLowerCase();
@@ -97,7 +114,9 @@ public final class ApiKeyCrypto {
         return null;
     }
 
-    /** 账号级密钥材料 = 当前本地玩家会话 UUID——旧版派生源，留着只为平滑迁移旧密文。 */
+    /** Account-level secret = the local player's session UUID - the
+     * fallback derivation source when the machine key is unavailable,
+     * shared by both the encrypt and decrypt paths */
     private static String accountUuid() {
         MinecraftClient client = MinecraftClient.getInstance();
         UUID uuid = (client != null && client.getSession() != null)
@@ -106,17 +125,30 @@ public final class ApiKeyCrypto {
     }
 
     /**
-     * 加密明文并落盘存储——优先机器密钥，让 Key 随机器走、不随账号走。
+     * Encrypt the plaintext for at-rest storage - machine key first, so the
+     * Key follows the machine, not the account.
      *
-     * @param plain 待加密的明文字符串（可为空）
-     * @return 形如 {@code enc:v1:...} 的密文；明文为空返回空串；密钥不可用（非 Windows 且离线/异常）
-     *         时返回明文原样（降级，调用方已获知此风险）
+     * <p>When no key material is available the plaintext is returned as-is,
+     * rather than rejecting the save or storing an empty string: the only
+     * purpose of this config is handing the Key to the query logic. Storing
+     * an empty string throws away the Key the player typed; rejecting the
+     * save makes the setting look like it was never saved in the GUI.
+     * Plaintext at least keeps the feature working, at the cost of a bare
+     * key in the file - see the security boundary note in the class
+     * comment.
+     *
+     * @param plain plaintext to encrypt (may be empty)
+     * @return ciphertext of the form {@code enc:v1:...}; empty string for
+     *  empty plaintext; the plaintext unchanged when no key material is
+     *  available (non-Windows + offline/error) - the downgrade boundary
+     *  lives in {@link ConfigApiKey#getAsJsonElement()}
      */
     public static String encrypt(String plain) {
         if (plain == null || plain.isEmpty()) {
             return "";
         }
-        // 机器密钥优先（MachineGuid，切号不受影响）；拿不到（非 Windows/读取失败）才回退账号 UUID
+        // Machine key first: MachineGuid is account independent; fall back
+        // to the account UUID only when it is unavailable
         String mg = machineGuid();
         SecretKeySpec key = mg != null ? deriveKey(mg) : deriveKey(accountUuid());
         if (key == null) {
@@ -139,15 +171,20 @@ public final class ApiKeyCrypto {
     }
 
     /**
-     * 解密已存储的 API Key——按「先机器、后账号」的顺序逐个试，兼顾新密文与旧版本。
+     * Decrypt a stored API Key, trying machine key first, then account key.
      * <ul>
-     *   <li>非本格式（旧版明文）→ 原样读入（升级迁移）；</li>
-     *   <li>先试机器密钥（MachineGuid，切任意账号都能解），失败再试旧账号密钥（平滑迁移旧版本 UUID 加密的密文）；</li>
-     *   <li>密钥不可用或全部失败（换机器/数据损坏）→ 返回空串（需重填）。</li>
+     *  <li>Not in this format (plaintext): read back unchanged;</li>
+     *  <li>Machine key first (MachineGuid, decrypts under any account),
+     *  then the account key on failure (for ciphertext encrypted with the
+     *  account-UUID-derived key);</li>
+     *  <li>No key material or both fail (new machine / corrupted data):
+     *  empty string (the key must be re-entered)</li>
      * </ul>
      *
-     * @param stored 配置文件中读取的原始值（密文或旧版明文）
-     * @return 解密后的明文；非本格式原样返回，解密失败返回空串
+     * @param stored raw value read from the config file (ciphertext or
+     *  plaintext)
+     * @return decrypted plaintext; unchanged for foreign formats, empty
+     *  string on decryption failure
      */
     public static String decrypt(String stored) {
         if (stored == null || stored.isEmpty()) {
@@ -156,7 +193,8 @@ public final class ApiKeyCrypto {
         if (!stored.startsWith(PREFIX)) {
             return stored;
         }
-        // 机器密钥优先：MachineGuid 与账号无关，切任意账号都能解同一份密文
+        // Machine key first: MachineGuid is account independent, so any
+        // account decrypts the same ciphertext
         String mg = machineGuid();
         if (mg != null) {
             String plain = tryDecrypt(stored, deriveKey(mg));
@@ -164,7 +202,8 @@ public final class ApiKeyCrypto {
                 return plain;
             }
         }
-        // 旧账号密钥兜底：旧版本用账号 UUID 派生密钥，这里解一次让不换号的升级直接兼容
+        // Account key fallback: derived from the local player's session
+        // UUID; switching accounts invalidates it
         String uuid = accountUuid();
         if (uuid != null) {
             String plain = tryDecrypt(stored, deriveKey(uuid));
@@ -172,12 +211,15 @@ public final class ApiKeyCrypto {
                 return plain;
             }
         }
-        // 换机器 / 数据损坏 / 密钥不可用：这把 Key 解不开了，只能提示重填
+        // New machine / corrupted data / no key material: this Key is
+        // unrecoverable, only re-entering helps
         NoMoreZombies.LOGGER.warn("ApiKeyCrypto: decryption failed (machine or account mismatch?), API key needs to be re-entered");
         return "";
     }
 
-    /** 用给定密钥试解一份密文：成功返回明文，失败（tag 校验不过 / 格式错误）返回 null——解密不抛异常。 */
+    /** Try to decrypt one ciphertext with the given key: plaintext on
+     * success, null on failure (tag check / format error) - decryption
+     * never throws */
     private static String tryDecrypt(String stored, SecretKeySpec key) {
         if (key == null) {
             return null;

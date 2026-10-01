@@ -1,6 +1,9 @@
 package cn.gsfy.nmz.client.config;
 
 import cn.gsfy.nmz.NoMoreZombies;
+import cn.gsfy.nmz.client.config.hud.HUDEditor;
+import cn.gsfy.nmz.client.config.hud.HudCanvasMode;
+import cn.gsfy.nmz.client.config.hud.HudCanvas;
 import com.google.common.collect.ImmutableList;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -26,24 +29,29 @@ import java.nio.file.Path;
 import java.util.List;
 
 /**
- * 全局配置持有者（MaLiLib）——所有设置的唯一仓库：按功能分组存成静态配置常量，
- * 界面由 {@link GlobalConfigGui} 编辑，持久化到 config/nomorezombies.json
- * （MaLiLib 格式，按分组写）。
+ * Global config holder (MaLiLib)--the single home for every setting: grouped
+ * by feature into static config constants, edited in the UI by
+ * {@link GlobalConfigGui}, persisted to
+ * {@code config/nomorezombies.json} (MaLiLib format, written per group)
  *
- * <p>凡是「开/关」语义的项都做成 {@link ConfigBooleanHotkeyed}，绑上热键就能在游戏内
- * 一键切换（自带提示消息），不用每次进菜单翻开关；音效 ID / HUD 坐标 / 缩放这类没有
- * 开关语义的项，则分别用 ConfigString / ConfigDouble / ConfigOptionList 各归其位。
+ * <p>Anything with an on/off semantic becomes a {@link ConfigBooleanHotkeyed};
+ * with a hotkey bound, it toggles in game with one keypress (toggle message
+ * included) instead of a menu visit every time. Items without a switch
+ * semantic--sound IDs, HUD coordinates, scale--each take their natural type:
+ * ConfigString, ConfigDouble, ConfigOptionList
  */
 public class GlobalConfig implements IConfigHandler {
 
     private static final String CONFIG_FILE_NAME = NoMoreZombies.MOD_ID + ".json";
 
-    // ---- 翻译 key 前缀：.apply(prefix) 会把 prefix 接到 name/prettyName/comment 前 ----
-    // 拼成翻译键（prefix.name/prettyName/comment.<cleanName>），界面按客户端语言取词。
+    // ----Translation key prefixes: .apply(prefix) prepends prefix to
+    // name/prettyName/comment----
+    // forming translation keys (prefix.name/prettyName/comment.<cleanName>);
+    // the UI looks words up in the client language
     private static final String PREFIX_SST = "nomorezombies.config.sst";
     private static final String PREFIX_POWERUP = "nomorezombies.config.powerup";
     private static final String PREFIX_RECORD = "nomorezombies.config.record";
-    private static final String PREFIX_AA_COMMAND = "nomorezombies.config.aacommand";
+    private static final String PREFIX_AA_AUTO_COMMAND = "nomorezombies.config.aaautocommand";
     private static final String PREFIX_QOL = "nomorezombies.config.qol";
     private static final String PREFIX_HIDE = "nomorezombies.config.hide";
     private static final String PREFIX_ZOOM = "nomorezombies.config.zoom";
@@ -51,51 +59,73 @@ public class GlobalConfig implements IConfigHandler {
     private static final String PREFIX_GAMMA = "nomorezombies.config.gamma";
     private static final String PREFIX_FREECAM = "nomorezombies.config.freecamera";
 
-    // ======================= 波次计时 (spawntimes) =======================
+    // ----Wave timing (spawntimes)----
 
     /**
-     * 波次计时提示的配置组：波次出生 / 末波的提示音效（ID 与音高）、
-     * 末波倒计时与整场变色提示，全收在这一个屋里。
+     * Wave timing config group: wave spawn / final-wave alert sounds (ID
+     * and pitch), the final-wave countdown, and the whole-run color alert,
+     * all under one roof
      *
-     * <p>这里只摆「怎么播」，不碰「播不播」——全局总开关见
-     * {@link QoL#WAVE_SOUND_ENABLED}。地图生效范围由下面 4 个开关各管一张图，
-     * 全开 = 所有地图、按需关闭即可，比原来的三档下拉更细。开 / 关由
-     * {@link QoL#WAVE_SOUND_ENABLED} 总开关统一承担，这里不再单设「关闭」。
+     * <p>The master switch for wave sounds is {@link QoL#WAVE_SOUND_ENABLED};
+     * map coverage is per-map via the four switches below--all four on means
+     * all four maps sound, turn off just the map you don't want. This
+     * group's own two switches, final-wave countdown and AA color alert,
+     * are independent of that master switch
      */
     public static class Spawntimes {
-        /** 每波刷怪音效在「外星游乐园」是否生效。默认开。 */
+        /** Whether per-wave spawn sounds play on Alien Arcadium, default on */
         public static final ConfigBoolean WAVE_SOUND_AA =
                 new ConfigBoolean("waveSoundAA", true).apply(PREFIX_SST);
-        /** 每波刷怪音效在「穷途末路」是否生效。默认开。 */
+        /** Whether per-wave spawn sounds play on Dead End, default on */
         public static final ConfigBoolean WAVE_SOUND_DE =
                 new ConfigBoolean("waveSoundDE", true).apply(PREFIX_SST);
-        /** 每波刷怪音效在「坏血之宫」是否生效。默认开。 */
+        /** Whether per-wave spawn sounds play on Bad Blood, default on */
         public static final ConfigBoolean WAVE_SOUND_BB =
                 new ConfigBoolean("waveSoundBB", true).apply(PREFIX_SST);
-        /** 每波刷怪音效在「监狱」是否生效。默认开。 */
+        /** Whether per-wave spawn sounds play on Prison, default on */
         public static final ConfigBoolean WAVE_SOUND_PRISON =
                 new ConfigBoolean("waveSoundPrison", true).apply(PREFIX_SST);
+        /** Sound ID of the regular wave spawn alert (default: note block pling) */
         public static final ConfigString PRECEDED_WAVE_SOUND =
                 new ConfigString("precededWaveSound", "minecraft:block.note_block.pling").apply(PREFIX_SST);
+        /** Pitch of the regular wave alert (0.0-2.0, default 2.0) */
         public static final ConfigDouble PRECEDED_WAVE_PITCH =
                 new ConfigDouble("precededWavePitch", 2.0, 0.0, 2.0, true).apply(PREFIX_SST);
+        /** Sound ID of the final wave (last spawn wave of the round) alert (default: experience orb pickup) */
         public static final ConfigString LAST_WAVE_SOUND =
                 new ConfigString("lastWaveSound", "minecraft:entity.experience_orb.pickup").apply(PREFIX_SST);
+        /** Pitch of the final wave alert (0.0-2.0, default 0.5) */
         public static final ConfigDouble LAST_WAVE_PITCH =
                 new ConfigDouble("lastWavePitch", 0.5, 0.0, 2.0, true).apply(PREFIX_SST);
-        /** 末波倒计时音效（可绑热键，全地图生效，不限于穷途末路/坏血之宫）：
-         * 每回合末波前播放 3-2-1 倒计时，提示玩家「这波打完就到收尾关」。 */
+        /**
+         * Final-wave countdown (hotkeyed, works on every map, not just Dead
+         * End / Bad Blood): plays a 3-2-1 countdown before each round's
+         * final wave, signaling "finish this wave and the cleanup phase
+         * starts"
+         */
         public static final ConfigBooleanHotkeyed FINAL_WAVE_COUNTDOWN =
                 new ConfigBooleanHotkeyed("finalWaveCountDown", false, "").apply(PREFIX_SST);
+        /** Sound ID of each 3-2-1 countdown beep (default: note block pling) */
         public static final ConfigString COUNTDOWN_SOUND =
                 new ConfigString("countDownSound", "minecraft:block.note_block.pling").apply(PREFIX_SST);
+        /** Pitch of each 3-2-1 countdown beep (0.0-2.0, default 1.5) */
         public static final ConfigDouble COUNTDOWN_PITCH =
                 new ConfigDouble("countDownPitch", 1.5, 0.0, 2.0, true).apply(PREFIX_SST);
+        /**
+         * Master switch for danger-wave coloring of AA wave rows (hotkeyed,
+         * default off): when on, the wave HUD recolors upcoming waves on
+         * Alien Arcadium per the aa_color_alert data table--pure giant
+         * waves blue, to1-exclusive waves green, to1 + giant waves red, so
+         * the boss wave stands out at a glance. Other maps are unaffected
+         */
         public static final ConfigBooleanHotkeyed COLOR_ALERT =
                 new ConfigBooleanHotkeyed("colorAlert", false, "").apply(PREFIX_SST);
 
-        // 界面展示顺序刻意排成「按钮（开关/热键）> 滑动条（音高）> 文本输入（音效 ID）」：
-        // 最常碰的开关放最前，音高滑条居中，音效 ID 这种要打字的压到最底。
+        // The OPTIONS ordering (switches first, pitches mid, sound IDs last)
+        // only sets the write order inside the config file: the UI's display
+        // order is aggregated by GlobalConfigGui.getConfigs() and has nothing
+        // to do with it
+        /** The 12 items written to the {@code Spawntimes} section; order here only governs persistence */
         public static final ImmutableList<IConfigBase> OPTIONS = ImmutableList.of(
                 WAVE_SOUND_AA,
                 WAVE_SOUND_DE,
@@ -112,120 +142,489 @@ public class GlobalConfig implements IConfigHandler {
         );
     }
 
-    // ======================= 道具系统 (powerups) =======================
+    // ----Powerup system (powerups)----
 
     /**
-     * 道具系统配置组：道具预警与提醒的输出方式。
+     * Powerup system config group: how powerup warnings and alerts are
+     * output
      *
-     * <p>全组只有两项，且都不提供「关闭」选项——预警 / 提醒的开关合在一把钥匙上：
-     * {@link #POWERUP_PREDICT}（已绑热键）一关，下面这两个输出项自然就没人干活了。
+     * <p>Only two items, and neither offers an "off" option--warning and
+     * alert share one switch: when {@link #POWERUP_PREDICT} (hotkeyed) is
+     * off, the two output items below simply have nothing to do
      */
     public static class Powerups {
+        /**
+         * Master switch for powerup prediction / drop alerts (hotkeyed,
+         * default off): when off, both the round-start forecast and the "X
+         * has dropped" alerts stop--this group has no separate output
+         * switches
+         */
         public static final ConfigBooleanHotkeyed POWERUP_PREDICT =
                 new ConfigBooleanHotkeyed("powerupPredict", false, "").apply(PREFIX_POWERUP);
-        /** 道具提醒输出方式：自己 / 队伍(/pc) / 公聊(/ac) / 关闭——决定提醒发去哪个频道，
-         * 选「自己」最安静，选公聊则整局都看得见。 */
+        /**
+         * Where powerup alerts go: self / team (/pc) / public chat (/ac)--
+         * "self" is the quietest, public chat stays visible all game
+         */
         public static final ConfigOptionList ALERT_OUTPUT =
                 new ConfigOptionList("alertOutput", AlertOutput.SELF).apply(PREFIX_POWERUP);
 
+        /**
+         * The two items written to the {@code Powerups} section; in the UI
+         * they sit on the QoL page and the global page respectively, display
+         * order is GlobalConfigGui's call, and this list only sets
+         * persistence order
+         */
         public static final ImmutableList<IConfigBase> OPTIONS = ImmutableList.of(
                 POWERUP_PREDICT,
                 ALERT_OUTPUT
         );
     }
 
-    // ======================= 计时记录 (recorder) =======================
+    // ----Round timing records (recorder)----
 
     /**
-     * 计时记录配置组：回合数据统计聊天播报的频率，所有地图共用一档。
+     * Round timing record config group: how often round stats are announced
+     * in chat, one setting shared by all maps
      *
-     * <p>这里只挑播报频率，不管开与关——开关由 {@link QoL#RECORD_ENABLED}（已绑热键）
-     * 统一承担，所以这个选项不带「关闭」，避免同一个语义上两把锁。
-     * 单档不分图：AA 是 105 回合的马拉松图，短图最多 40 回合，同一档在两图上每场录的
-     * 条数自然不同——想均衡节奏，短图挑「每 5 回合」、AA 挑「每 10 回合」即可。
+     * <p>Only frequency lives here, not on/off--the switch is
+     * {@link QoL#RECORD_ENABLED} (hotkeyed), so this option carries no "off"
+     * entry, keeping one semantic on one lock. One setting, no per-map
+     * split: AA is a 105-round marathon while Dead End / Bad Blood / Prison
+     * cap at 30, so the same setting naturally logs a different count per
+     * game on each map type--to even the pace, pick "every 5 rounds" for
+     * the short maps and "every 10 rounds" for AA
      */
     public static class Record {
+        /** Chat announcement frequency for round stats (see {@link RecordTiming}, default: every round) */
         public static final ConfigOptionList ROUNDS_RECORD =
                 new ConfigOptionList("roundsRecord", RecordTiming.ALL).apply(PREFIX_RECORD);
 
+        /** The frequency item written to the {@code Record} section; persistence reads only this collection */
         public static final ImmutableList<IConfigBase> OPTIONS = ImmutableList.of(
                 ROUNDS_RECORD
         );
     }
 
-    // ======================= 外星游乐园自动指挥 (AA auto commander) =======================
+    // ----Alien Arcadium auto command (AA auto command)----
 
     /**
-     * 外星游乐园（AA）自动指挥配置组：播报输出方式与信息模板。
+     * Alien Arcadium (AA) auto command config group: announcement output
+     * channel and message template
      *
-     * <p>开与关由 {@link QoL#AA_COMMAND_ENABLED}（已绑热键）统一承担，这里只管
-     * 「往哪说、说什么」；模板还支持本地化默认值，语言切换时自动重写，见
-     * {@link I18nTemplateConfig}。
+     * <p>On/off is owned by {@link QoL#AA_AUTO_COMMAND_ENABLED} (hotkeyed);
+     * here only "where to say it, what to say". The template also supports
+     * localized defaults that rewrite themselves on language switch; see
+     * {@link I18nTemplateConfig}
      */
-    public static class AaCommand {
-        /** 输出方式：仅自己 / 队伍(/pc) / 公聊(/ac)。直接复用 {@link AlertOutput}
-         * （同为 SELF/PARTY/CHAT，无「关闭」——开关由 AA_COMMAND_ENABLED 承担）。 */
+    public static class AAAutoCommand {
+        /**
+         * Output channel: self only / team (/pc) / public chat (/ac)--
+         * reuses {@link AlertOutput} directly (same SELF/PARTY/CHAT, no
+         * "off"--the switch is owned by AA_AUTO_COMMAND_ENABLED)
+         */
         public static final ConfigOptionList OUTPUT =
-                new ConfigOptionList("output", AlertOutput.SELF).apply(PREFIX_AA_COMMAND);
-        /** 输出信息模板（输入框）。支持 {round}/{point}/{boss}/{difficulty} 四个变量；
-         * 空串或含未知变量都算非法，自动回退默认模板——宁可说通用话也不报错。
-         * 默认 / 重置随客户端语言走（nomorezombies.aacommand.defaultTemplate），
-         * 语言切换自动重写，见 {@link I18nTemplateConfig}。 */
+                new ConfigOptionList("output", AlertOutput.SELF).apply(PREFIX_AA_AUTO_COMMAND);
+        /**
+         * Output message template (text field): supports four variables,
+         * {round}/{point}/{boss}/{difficulty}; an empty string or an
+         * unknown variable counts as invalid and silently falls back to the
+         * default template--speak generically rather than error out.
+         * Default/reset follows the client language
+         * ({@code nomorezombies.aaautocommand.defaultTemplate}) and
+         * rewrites itself on language switch; see {@link I18nTemplateConfig}
+         */
         public static final I18nTemplateConfig TEMPLATE =
-                new I18nTemplateConfig("template").apply(PREFIX_AA_COMMAND);
+                new I18nTemplateConfig("template").apply(PREFIX_AA_AUTO_COMMAND);
 
+        /** The output channel and localized template written to the {@code AAAutoCommand} section */
         public static final ImmutableList<IConfigBase> OPTIONS = ImmutableList.of(
                 OUTPUT,
                 TEMPLATE
         );
     }
 
-    // ======================= HUD 坐标与缩放（仅 HUDEditor 编辑，不进配置界面） =======================
+    // ----HUD coordinates and scale (edited only in HUDEditor, not in the config UI)----
 
     /**
-     * HUD 布局配置组：各 HUD 元素的位置（屏幕比例 0.0~1.0）、缩放（0.5~2.0）
-     * 与独立可见性。
+     * HUD layout config group: each HUD element's <b>anchor ratio</b>
+     * (0.0-1.0), scale (0.5-2.0), and independent visibility
      *
-     * <p>这一整组都不进配置界面，只由 {@link HUDEditor} 拖拽编辑；坐标记成负值
-     * （< 0）代表「用户还没手动调过」，此时渲染端走 {@link GlobalConfig#getXSpawnTime(int)}
-     * 这类解析方法按默认贴边自动排布（见下文解析区）——手动拖过才写死坐标。
+     * <p>This whole group stays out of the config UI and is edited only by
+     * dragging in {@link HUDEditor}
+     *
+     * <p><b>Coordinate semantics (incompatible with the legacy config file
+     * format)</b>: 0.0 = leading edge (left/top), 0.5 = centered, 1.0 =
+     * trailing edge (right/bottom); in-between values walk the matching
+     * percentage of the available travel. Travel
+     * {@code [reserve, screenW/H - contentSize - reserve]} is computed live
+     * by the renderer each frame, so one number lands at the same relative
+     * position at any resolution and any GUI scale--pinned right stays
+     * pinned right, centered stays centered
+     *
+     * <p>Factory defaults therefore use only three levels (0/0.5/1):
+     * negatives are outside the valid range and get folded into 0-1 on load
+     * by {@link #normalizeAnchorKeys()}
      */
     public static class Hud {
-        public static final ConfigDouble X_SPAWN_TIME = new ConfigDouble("xSpawnTime", 0.883, -1.0, 1.0);
-        public static final ConfigDouble Y_SPAWN_TIME = new ConfigDouble("ySpawnTime", 0.799, -1.0, 1.0);
-        public static final ConfigDouble X_POWERUP = new ConfigDouble("xPowerup", 0.004, -1.0, 1.0);
-        public static final ConfigDouble Y_POWERUP = new ConfigDouble("yPowerup", 0.256, -1.0, 1.0);
-        public static final ConfigDouble X_TEAM_STATS = new ConfigDouble("xTeamStats", 0.004, -1.0, 1.0);
-        public static final ConfigDouble Y_TEAM_STATS = new ConfigDouble("yTeamStats", 0.007, -1.0, 1.0);
+        // Default anchors are the three levels (0 leading edge / 0.5 centered /
+        // 1 trailing edge): they say only which edge, not how many pixels from
+        // it--reserves are declared per HUD by reserveX/reserveY (see
+        // RegisterHUD) and are resolution-independent
+        /** Spawn time HUD X anchor (1.0 = pinned right) */
+        public static final ConfigDouble X_SPAWN_TIME = new ConfigDouble("xSpawnTime", 1.0, 0.0, 1.0);
+        /** Spawn time HUD Y anchor (1.0 = pinned bottom, above the hotbar) */
+        public static final ConfigDouble Y_SPAWN_TIME = new ConfigDouble("ySpawnTime", 1.0, 0.0, 1.0);
+        /** Powerup HUD X anchor (0.0 = pinned left) */
+        public static final ConfigDouble X_POWERUP = new ConfigDouble("xPowerup", 0.0, 0.0, 1.0);
+        /** Powerup HUD Y anchor (0.5 = vertically centered) */
+        public static final ConfigDouble Y_POWERUP = new ConfigDouble("yPowerup", 0.5, 0.0, 1.0);
+        /** Team stats HUD X anchor (0.0 = pinned left) */
+        public static final ConfigDouble X_TEAM_STATS = new ConfigDouble("xTeamStats", 0.0, 0.0, 1.0);
+        /** Team stats HUD Y anchor (0.0 = pinned top) */
+        public static final ConfigDouble Y_TEAM_STATS = new ConfigDouble("yTeamStats", 0.0, 0.0, 1.0);
+        /** Spawn time HUD scale (0.5-2.0, default 1.0) */
         public static final ConfigDouble SCALE_SPAWN_TIME = new ConfigDouble("scaleSpawnTime", 1.0, 0.5, 2.0, true);
+        /** Powerup HUD scale (0.5-2.0, default 1.0) */
         public static final ConfigDouble SCALE_POWERUP = new ConfigDouble("scalePowerup", 1.0, 0.5, 2.0, true);
-        public static final ConfigDouble SCALE_TEAM_STATS = new ConfigDouble("scaleTeamStats", 1.001, 0.5, 2.0, true);
-        public static final ConfigDouble X_GAME_TIME = new ConfigDouble("xGameTime", 0.829, -1.0, 1.0);
-        public static final ConfigDouble Y_GAME_TIME = new ConfigDouble("yGameTime", 0.007, -1.0, 1.0);
+        /** Team stats HUD scale (0.5-2.0, default 1.0010775862068966) */
+        public static final ConfigDouble SCALE_TEAM_STATS = new ConfigDouble("scaleTeamStats", 1.0010775862068966, 0.5, 2.0, true);
+        /** Time HUD X anchor (1.0 = pinned right) */
+        public static final ConfigDouble X_GAME_TIME = new ConfigDouble("xGameTime", 1.0, 0.0, 1.0);
+        /** Time HUD Y anchor (0.0 = pinned top) */
+        public static final ConfigDouble Y_GAME_TIME = new ConfigDouble("yGameTime", 0.0, 0.0, 1.0);
+        /** Time HUD scale (0.5-2.0, default 1.0) */
         public static final ConfigDouble SCALE_GAME_TIME = new ConfigDouble("scaleGameTime", 1.0, 0.5, 2.0, true);
-        public static final ConfigDouble X_LRQUEUE = new ConfigDouble("xLrQueue", 0.004, -1.0, 1.0);
-        public static final ConfigDouble Y_LRQUEUE = new ConfigDouble("yLrQueue", 0.871, -1.0, 1.0);
+        /** Lightning rod queue HUD X anchor (0.5 = horizontally centered) */
+        public static final ConfigDouble X_LRQUEUE = new ConfigDouble("xLrQueue", 0.5, 0.0, 1.0);
+        /** Lightning rod queue HUD Y anchor (1.0 = pinned bottom, above the hotbar) */
+        public static final ConfigDouble Y_LRQUEUE = new ConfigDouble("yLrQueue", 1.0, 0.0, 1.0);
+        /** Lightning rod queue HUD scale (0.5-2.0, default 1.0) */
         public static final ConfigDouble SCALE_LRQUEUE = new ConfigDouble("scaleLrQueue", 1.0, 0.5, 2.0, true);
-        public static final ConfigDouble X_AA_COMMAND = new ConfigDouble("xAaCommand", 0.004, -1.0, 1.0);
-        public static final ConfigDouble Y_AA_COMMAND = new ConfigDouble("yAaCommand", 0.455, -1.0, 1.0);
-        public static final ConfigDouble SCALE_AA_COMMAND = new ConfigDouble("scaleAaCommand", 1.0, 0.5, 2.0, true);
-        public static final ConfigDouble X_CPS = new ConfigDouble("xCps", 0.695, -1.0, 1.0);
-        public static final ConfigDouble Y_CPS = new ConfigDouble("yCps", 0.928, -1.0, 1.0);
+        /** AA auto command HUD X anchor (0.0 = pinned left) */
+        public static final ConfigDouble X_AA_AUTO_COMMAND = new ConfigDouble("xAAAutoCommand", 0.0, 0.0, 1.0);
+        /** AA auto command HUD Y anchor (1.0 = pinned bottom, above the hotbar) */
+        public static final ConfigDouble Y_AA_AUTO_COMMAND = new ConfigDouble("yAAAutoCommand", 1.0, 0.0, 1.0);
+        /** AA auto command HUD scale (0.5-2.0, default 1.0) */
+        public static final ConfigDouble SCALE_AA_AUTO_COMMAND = new ConfigDouble("scaleAAAutoCommand", 1.0, 0.5, 2.0, true);
+        /** CPS HUD X anchor (1.0 = pinned right) */
+        public static final ConfigDouble X_CPS = new ConfigDouble("xCps", 1.0, 0.0, 1.0);
+        /** CPS HUD Y anchor (0.5 = vertically centered) */
+        public static final ConfigDouble Y_CPS = new ConfigDouble("yCps", 0.5, 0.0, 1.0);
+        /** CPS HUD scale (0.5-2.0, default 1.0) */
         public static final ConfigDouble SCALE_CPS = new ConfigDouble("scaleCps", 1.0, 0.5, 2.0, true);
+        /** Global overview HUD X anchor (1.0 = pinned right) */
+        public static final ConfigDouble X_GLOBAL_OVERVIEW = new ConfigDouble("xGlobalOverview", 1.0, 0.0, 1.0);
+        /** Global overview HUD Y anchor (0.0 = pinned top) */
+        public static final ConfigDouble Y_GLOBAL_OVERVIEW = new ConfigDouble("yGlobalOverview", 0.0, 0.0, 1.0);
+        /** Global overview HUD scale (0.5-2.0, default 1.0) */
+        public static final ConfigDouble SCALE_GLOBAL_OVERVIEW = new ConfigDouble("scaleGlobalOverview", 1.0, 0.5, 2.0, true);
+        /** Status effects HUD X anchor (1.0 = pinned right) */
+        public static final ConfigDouble X_STATUS_EFFECTS = new ConfigDouble("xStatusEffects", 1.0, 0.0, 1.0);
+        /** Status effects HUD Y anchor: 0.45 = 45% of the travel (around the vanilla effect icons) */
+        public static final ConfigDouble Y_STATUS_EFFECTS = new ConfigDouble("yStatusEffects", 0.45, 0.0, 1.0);
+        /** Status effects HUD scale (0.5-2.0, default 1.0) */
+        public static final ConfigDouble SCALE_STATUS_EFFECTS = new ConfigDouble("scaleStatusEffects", 1.0, 0.5, 2.0, true);
+        // Scoreboard HUD (a draggable version of the native right sidebar):
+        // default pinned right + centered on the travel. With a 1px reserve,
+        // "pinned right" coincides pixel-for-pixel with the native right edge
+        // (W-1); Y takes the middle of the travel (the vanilla sidebar centers
+        // the text lines, not the whole box, so the native position sits about
+        // 14px higher--that small difference is handed to the player along
+        // with draggability, not chased with a one-off offset)
+        /** Scoreboard HUD X anchor (1.0 = pinned right, 1px reserve aligns with the native right edge) */
+        public static final ConfigDouble X_SCOREBOARD = new ConfigDouble("xScoreboard", 1.0, 0.0, 1.0);
+        /** Scoreboard HUD Y anchor (0.5 = vertically centered) */
+        public static final ConfigDouble Y_SCOREBOARD = new ConfigDouble("yScoreboard", 0.5, 0.0, 1.0);
+        /** Scoreboard HUD scale (0.5-2.0, default 1.0) */
+        public static final ConfigDouble SCALE_SCOREBOARD = new ConfigDouble("scaleScoreboard", 1.0, 0.5, 2.0, true);
+        /** Roll stats HUD X anchor (0.0 = pinned left) */
+        public static final ConfigDouble X_ROLL_STATS = new ConfigDouble("xRollStats", 0.0, 0.0, 1.0);
+        /** Roll stats HUD Y anchor (0.0 = pinned top) */
+        public static final ConfigDouble Y_ROLL_STATS = new ConfigDouble("yRollStats", 0.0, 0.0, 1.0);
+        /** Roll stats HUD scale (0.5-2.0, default 1.0) */
+        public static final ConfigDouble SCALE_ROLL_STATS = new ConfigDouble("scaleRollStats", 1.0, 0.5, 2.0, true);
 
-        // 各 HUD 独立可见性（仅 HUDEditor 编辑，不进配置界面）。
-        // 默认全开：总开关 HUD_MASTER 默认关，把它打开后所有 HUD 一起显示，
-        // 谁想藏哪块，进 HUD 编辑器单独关对应项。
-        // 渲染条件 = 总开关(QoL.HUD_MASTER) && 本项可见性，缺一不可。
-        public static final ConfigBoolean VISIBLE_SPAWN_TIME = new ConfigBoolean("visibleSpawnTime", true);
-        public static final ConfigBoolean VISIBLE_POWERUP = new ConfigBoolean("visiblePowerup", true);
-        public static final ConfigBoolean VISIBLE_TEAM_STATS = new ConfigBoolean("visibleTeamStats", true);
-        public static final ConfigBoolean VISIBLE_GAME_TIME = new ConfigBoolean("visibleGameTime", true);
+        /**
+         * Whether the client language is Simplified Chinese, <b>public</b>
+         * on purpose: {@code ScoreboardHudRenderer}'s offline samples must
+         * pick the Chinese or English set of captured real sidebar text per
+         * language (Hypixel sidebar text follows the in-game language), so
+         * the language test must have exactly one implementation.
+         * Falls back to English while the language manager is not ready
+         * (conservative: English is the baseline set)
+         */
+        public static boolean isChineseClient() {
+            MinecraftClient client = MinecraftClient.getInstance();
+            if (client == null || client.getLanguageManager() == null) {
+                return false;
+            }
+            return "zh_cn".equals(client.getLanguageManager().getLanguage());
+        }
+
+        // Per-HUD independent visibility (edited only in HUDEditor, not in the
+        // config UI). Out of the box only roll stats shows: it is placed on
+        // the canvas and visible by default, so a fresh install sees one
+        // block right away; the other ten components ship "not on screen",
+        // waiting in the left library to be dragged up--where and whether is
+        // entirely the player's call. The master switch HUD_MASTER defaults
+        // on; turning it off hides all HUDs including roll stats
+        //
+        // The render condition is decided at a single point by the {@code *On()}
+        // predicates below: master switch (QoL.HUD_MASTER) && placed (PLACED_*)
+        // && this visibility (VISIBLE_*), all three required. <b>Placement is
+        // a necessary condition</b>--a HUD never dragged onto the canvas is
+        // never drawn in game, otherwise unplaced elements would crowd the
+        // left screen edge at their anchor ratios.
+        // (Existing true/false values in old configs are not reset, upgraded
+        // layouts are kept as-is; loadFromFile applies defaults only when the
+        // file is missing)
+        /** Whether the spawn time HUD shows (factory off: waits for the player to drag it from the library onto the canvas) */
+        public static final ConfigBoolean VISIBLE_SPAWN_TIME = new ConfigBoolean("visibleSpawnTime", false);
+        /** Whether the powerup HUD shows (factory off) */
+        public static final ConfigBoolean VISIBLE_POWERUP = new ConfigBoolean("visiblePowerup", false);
+        /** Whether the team stats HUD shows (factory off) */
+        public static final ConfigBoolean VISIBLE_TEAM_STATS = new ConfigBoolean("visibleTeamStats", false);
+        /** Whether the time HUD shows (factory off) */
+        public static final ConfigBoolean VISIBLE_GAME_TIME = new ConfigBoolean("visibleGameTime", false);
+        /**
+         * Whether the lightning rod queue HUD shows (factory off): inside AA
+         * the renderer bypasses this value and force-shows it, but it still
+         * obeys only the master switch and "placed"--see
+         * {@link #lrQueueOn(boolean)}
+         */
         public static final ConfigBoolean VISIBLE_LRQUEUE = new ConfigBoolean("visibleLrQueue", false);
-        public static final ConfigBoolean VISIBLE_AA_COMMAND = new ConfigBoolean("visibleAaCommand", false);
-        public static final ConfigBoolean VISIBLE_CPS = new ConfigBoolean("visibleCps", true);
+        /**
+         * Whether the AA auto command HUD shows (factory off): inside AA the
+         * renderer bypasses this value and force-shows it, but it still
+         * obeys only the master switch and "placed"--see
+         * {@link #aaAutoCommandOn(boolean)}
+         */
+        public static final ConfigBoolean VISIBLE_AA_AUTO_COMMAND = new ConfigBoolean("visibleAAAutoCommand", false);
+        /** Whether the CPS HUD shows (factory off) */
+        public static final ConfigBoolean VISIBLE_CPS = new ConfigBoolean("visibleCps", false);
+        /** Whether the global overview HUD shows (factory off) */
+        public static final ConfigBoolean VISIBLE_GLOBAL_OVERVIEW = new ConfigBoolean("visibleGlobalOverview", false);
+        /** Whether the status effects HUD shows (factory off) */
+        public static final ConfigBoolean VISIBLE_STATUS_EFFECTS = new ConfigBoolean("visibleStatusEffects", false);
+        /**
+         * Whether the scoreboard HUD shows (factory off): when on,
+         * {@code ScoreboardHudRenderer} takes over the native sidebar
+         * rendering (draggable/scalable); when off, the whole sidebar is
+         * hidden. Sidebar hiding is decided at one point by
+         * {@link #scoreboardOn()}; there is no separate "hide native
+         * scoreboard" switch
+         */
+        public static final ConfigBoolean VISIBLE_SCOREBOARD = new ConfigBoolean("visibleScoreboard", false);
+        /** Whether the roll stats HUD shows (factory on) */
+        public static final ConfigBoolean VISIBLE_ROLL_STATS = new ConfigBoolean("visibleRollStats", true);
 
-        public static final ImmutableList<IConfigValue> OPTIONS = ImmutableList.of(
+        // ----The eleven editor "is on the canvas" keys----
+        //
+        // Two independent states, persisted separately from the eleven
+        // VISIBLE_* above:
+        //  VISIBLE_* = drawn in game or not (the HUD's life or death)
+        //  PLACED_* = sits on the editor canvas or not (does it occupy the
+        //  workspace)
+        //
+        // <b>In-game rendering requires both true</b> (plus the master
+        // switch); see the {@code *On()} group below: a HUD not placed on
+        // the canvas is simply never drawn in game--the canvas is the only
+        // proof of "I put it there", and without that proof there is no
+        // "where to draw it in game".
+        // Conversely, "placed + visible: off" is still a legal and useful
+        // combination: keep tuning its position on the canvas while the game
+        // holds off (the canvas shows it with a red frame)
+        //
+        // Everything except roll stats ships false: only roll stats is on
+        // the canvas; the other ten components wait in the left library
+        /** Whether the spawn time HUD sits on the editor canvas (factory no) */
+        public static final ConfigBoolean PLACED_SPAWN_TIME = new ConfigBoolean("placedSpawnTime", false);
+        /** Whether the powerup HUD sits on the editor canvas (factory no) */
+        public static final ConfigBoolean PLACED_POWERUP = new ConfigBoolean("placedPowerup", false);
+        /** Whether the team stats HUD sits on the editor canvas (factory no) */
+        public static final ConfigBoolean PLACED_TEAM_STATS = new ConfigBoolean("placedTeamStats", false);
+        /** Whether the time HUD sits on the editor canvas (factory no) */
+        public static final ConfigBoolean PLACED_GAME_TIME = new ConfigBoolean("placedGameTime", false);
+        /** Whether the lightning rod queue HUD sits on the editor canvas (factory no) */
+        public static final ConfigBoolean PLACED_LRQUEUE = new ConfigBoolean("placedLrQueue", false);
+        /** Whether the AA auto command HUD sits on the editor canvas (factory no) */
+        public static final ConfigBoolean PLACED_AA_AUTO_COMMAND = new ConfigBoolean("placedAAAutoCommand", false);
+        /** Whether the CPS HUD sits on the editor canvas (factory no) */
+        public static final ConfigBoolean PLACED_CPS = new ConfigBoolean("placedCps", false);
+        /** Whether the global overview HUD sits on the editor canvas (factory no) */
+        public static final ConfigBoolean PLACED_GLOBAL_OVERVIEW = new ConfigBoolean("placedGlobalOverview", false);
+        /** Whether the status effects HUD sits on the editor canvas (factory no) */
+        public static final ConfigBoolean PLACED_STATUS_EFFECTS = new ConfigBoolean("placedStatusEffects", false);
+        /** Whether the scoreboard HUD sits on the editor canvas (factory no) */
+        public static final ConfigBoolean PLACED_SCOREBOARD = new ConfigBoolean("placedScoreboard", false);
+        /** Whether the roll stats HUD sits on the editor canvas (factory yes) */
+        public static final ConfigBoolean PLACED_ROLL_STATS = new ConfigBoolean("placedRollStats", true);
+
+        // ----The single source of truth for in-game gating: the eleven *On()
+        // predicates----
+        //
+        // Renderers and {@code InGameHudMixin} may only call the named
+        // predicates here, never assemble "master switch && PLACED_* &&
+        // VISIBLE_*" by hand--handwritten conjunctions drift, and once one
+        // drifts, unplaced HUDs crowd the left screen edge at their anchor
+        // ratios. The conjunction lives here and nowhere else; the
+        // PLACED_/VISIBLE_* literals therefore appear only in this file
+        // (HudEntry and RegisterHUD just wire the read/write accessors at
+        // registration), and feature/ and mixin/ code may not reference
+        // these keys directly
+        //
+        // The predicates <b>do not test the map</b>: the two AA entries'
+        // in-map "bypass independent visibility" is carried by the
+        // parameterized overloads, with the caller passing in whether the
+        // current map is AA (map detection stays in LanguageUtils)
+
+        /** Whether the spawn time HUD should draw in game right now */
+        public static boolean spawnTimeOn() {
+            return on(PLACED_SPAWN_TIME, VISIBLE_SPAWN_TIME);
+        }
+
+        /** Whether the powerup HUD should draw in game right now */
+        public static boolean powerupOn() {
+            return on(PLACED_POWERUP, VISIBLE_POWERUP);
+        }
+
+        /** Whether the team stats HUD should draw in game right now (the sidebar row filter also reads it) */
+        public static boolean teamStatsOn() {
+            return on(PLACED_TEAM_STATS, VISIBLE_TEAM_STATS);
+        }
+
+        /** Whether the time HUD should draw in game right now (the sidebar row filter also reads it) */
+        public static boolean gameTimeOn() {
+            return on(PLACED_GAME_TIME, VISIBLE_GAME_TIME);
+        }
+
+        /** Whether the CPS HUD should draw in game right now */
+        public static boolean cpsOn() {
+            return on(PLACED_CPS, VISIBLE_CPS);
+        }
+
+        /** Whether the global overview HUD should draw in game right now */
+        public static boolean globalOverviewOn() {
+            return on(PLACED_GLOBAL_OVERVIEW, VISIBLE_GLOBAL_OVERVIEW);
+        }
+
+        /** Whether the status effects HUD should draw in game right now */
+        public static boolean statusEffectsOn() {
+            return on(PLACED_STATUS_EFFECTS, VISIBLE_STATUS_EFFECTS);
+        }
+
+        /**
+         * Whether the scoreboard HUD should take over the sidebar right
+         * now--when {@code false}, {@code InGameHudMixin} cancels the
+         * native rendering outright inside a Zombies game, so the whole
+         * sidebar hides (not placed and "visible: off" have the same
+         * consequence here: hiding)
+         */
+        public static boolean scoreboardOn() {
+            return on(PLACED_SCOREBOARD, VISIBLE_SCOREBOARD);
+        }
+
+        /** Whether the roll stats HUD should draw in game right now */
+        public static boolean rollStatsOn() {
+            return on(PLACED_ROLL_STATS, VISIBLE_ROLL_STATS);
+        }
+
+        /**
+         * Whether the AA auto command HUD should draw in game right now
+         *
+         * <p>Inside AA, bypassing this HUD's independent visibility stays a
+         * hard semantic (AA mode auto-enables it), but <b>placement and the
+         * master switch cannot be bypassed</b>--an element never dragged
+         * onto the canvas appears on no map
+         *
+         * @param onAaMap whether the current map is Alien Arcadium
+         * @return whether to render
+         */
+        public static boolean aaAutoCommandOn(boolean onAaMap) {
+            return QoL.HUD_MASTER.getBooleanValue()
+                    && PLACED_AA_AUTO_COMMAND.getBooleanValue()
+                    && (VISIBLE_AA_AUTO_COMMAND.getBooleanValue() || onAaMap);
+        }
+
+        /**
+         * Whether the lightning rod queue HUD should draw in game right
+         * now--mirrors {@link #aaAutoCommandOn(boolean)}
+         *
+         * @param onAaMap whether the current map is Alien Arcadium
+         * @return whether to render
+         */
+        public static boolean lrQueueOn(boolean onAaMap) {
+            return QoL.HUD_MASTER.getBooleanValue()
+                    && PLACED_LRQUEUE.getBooleanValue()
+                    && (VISIBLE_LRQUEUE.getBooleanValue() || onAaMap);
+        }
+
+        /**
+         * Three checks in one: master switch and placed and enabled--the
+         * common tail of every {@code *On()} predicate
+         *
+         * @param placed whether the HUD sits on the canvas
+         * @param visible the independent visibility switch
+         * @return whether all three hold
+         */
+        private static boolean on(ConfigBoolean placed, ConfigBoolean visible) {
+            return QoL.HUD_MASTER.getBooleanValue()
+                    && placed.getBooleanValue()
+                    && visible.getBooleanValue();
+        }
+
+
+        /**
+         * How the HUD editor canvas sources its picture: the canvas
+         * currently uses a static backdrop image, so nothing consumes this
+         * option; it is kept for config round-trips only ({@link HudCanvas}'s
+         * full sourcing implementation stays intact--swap the editor's
+         * backdrop drawing back to {@code HudCanvas.render} and live
+         * playback reconnects)
+         *
+         * <p>Default {@link HudCanvasMode#LIVE_GPU}--draws the main
+         * framebuffer's color attachment directly as a texture: zero CPU
+         * readback and a fresh image every frame. If it ever misrenders
+         * (upside down / black), switch to
+         * {@link HudCanvasMode#LIVE_SNAPSHOT} for the screenshot-path
+         * fallback; the two paths share one interface, no code changes
+         * needed
+         */
+        public static final ConfigOptionList HUD_CANVAS_MODE =
+                new ConfigOptionList("hudCanvasMode", HudCanvasMode.LIVE_GPU);
+
+        /**
+         * Canvas sampling frequency (fps, 0-30, default 10): affects only
+         * the snapshot / frozen paths; GPU direct sampling refreshes every
+         * frame and ignores it.
+         * 0 means "capture a single frame" (equivalent to frozen), for
+         * squeezing cost to the minimum on low-end machines
+         */
+        public static final ConfigDouble HUD_CANVAS_FPS =
+                new ConfigDouble("hudCanvasFps", 10.0, 0.0, 30.0, true);
+
+        /**
+         * Width of the editor's left component library (px, 160-320, default
+         * 200): drag the library's right border to change it; pure UI
+         * preference
+         */
+        public static final ConfigDouble HUD_LIBRARY_WIDTH =
+                new ConfigDouble("hudLibraryWidth", 200.0, 160.0, 320.0, true);
+
+        /**
+         * Every HUD's coordinates, scale, and visibility in this group, plus
+         * the canvas sourcing mode and sampling frequency, read and written
+         * by MaLiLib under the {@code Hud} section
+         *
+         * <p>The element type is {@link IConfigBase} (not the
+         * {@link IConfigValue} the other groups use): the canvas sourcing
+         * mode is a {@link ConfigOptionList}, which implements only
+         * IConfigBase, and {@code ConfigUtils.readConfigBase}/
+         * {@code writeConfigBase} take exactly
+         * {@code List<? extends IConfigBase>}--both element kinds fit one
+         * list
+         */
+        public static final ImmutableList<IConfigBase> OPTIONS = ImmutableList.of(
                 X_SPAWN_TIME,
                 Y_SPAWN_TIME,
                 X_POWERUP,
@@ -236,8 +635,8 @@ public class GlobalConfig implements IConfigHandler {
                 Y_GAME_TIME,
                 X_LRQUEUE,
                 Y_LRQUEUE,
-                X_AA_COMMAND,
-                Y_AA_COMMAND,
+                X_AA_AUTO_COMMAND,
+                Y_AA_AUTO_COMMAND,
                 X_CPS,
                 Y_CPS,
                 SCALE_SPAWN_TIME,
@@ -245,135 +644,321 @@ public class GlobalConfig implements IConfigHandler {
                 SCALE_TEAM_STATS,
                 SCALE_GAME_TIME,
                 SCALE_LRQUEUE,
-                SCALE_AA_COMMAND,
+                SCALE_AA_AUTO_COMMAND,
                 SCALE_CPS,
+                X_GLOBAL_OVERVIEW,
+                Y_GLOBAL_OVERVIEW,
+                SCALE_GLOBAL_OVERVIEW,
+                X_STATUS_EFFECTS,
+                Y_STATUS_EFFECTS,
+                X_SCOREBOARD,
+                Y_SCOREBOARD,
+                SCALE_STATUS_EFFECTS,
+                SCALE_SCOREBOARD,
+                X_ROLL_STATS,
+                Y_ROLL_STATS,
+                SCALE_ROLL_STATS,
                 VISIBLE_SPAWN_TIME,
                 VISIBLE_POWERUP,
                 VISIBLE_TEAM_STATS,
                 VISIBLE_GAME_TIME,
                 VISIBLE_LRQUEUE,
-                VISIBLE_AA_COMMAND,
-                VISIBLE_CPS
+                VISIBLE_AA_AUTO_COMMAND,
+                VISIBLE_CPS,
+                VISIBLE_GLOBAL_OVERVIEW,
+                VISIBLE_STATUS_EFFECTS,
+                VISIBLE_SCOREBOARD,
+                VISIBLE_ROLL_STATS,
+                PLACED_SPAWN_TIME,
+                PLACED_POWERUP,
+                PLACED_TEAM_STATS,
+                PLACED_GAME_TIME,
+                PLACED_LRQUEUE,
+                PLACED_AA_AUTO_COMMAND,
+                PLACED_CPS,
+                PLACED_GLOBAL_OVERVIEW,
+                PLACED_STATUS_EFFECTS,
+                PLACED_SCOREBOARD,
+                PLACED_ROLL_STATS,
+                HUD_CANVAS_MODE,
+                HUD_CANVAS_FPS,
+                HUD_LIBRARY_WIDTH
         );
     }
 
-    // ======================= QoL =======================
+    // ----QoL----
 
     /**
-     * 实用功能（QoL）配置组：各功能的总开关（大多绑了热键）、ESP / 血条 / 隐身等
-     * 视觉效果开关，外加打开配置界面 / HUD 编辑器的快捷键。
+     * QoL config group: the master switch per feature (most of them
+     * hotkeyed), the visual effect switches (ESP, health bars, player hide,
+     * and friends), and the shortcuts that open the config UI / HUD editor
      *
-     * <p>此组的 {@link ConfigBooleanHotkeyed} 都支持游戏内热键一键开/关——把最常见的
-     * 操作放到键上，是这套配置的默认姿势，进菜单只是备选路径。
+     * <p>Every {@link ConfigBooleanHotkeyed} here toggles in game with one
+     * hotkey press--putting the most common action on a key is this
+     * config's default posture; the menu is only the backup path
      */
     public static class QoL {
-        /** 所有 HUD 的总开关（默认关，同 Tweakeroo）：一旦关闭，所有 HUD 一律隐藏，
-         * 权重压过编辑器里各 HUD 的独立显示开关。各 HUD 可见性默认全开——把总开关
-         * 打开后全部显示，要藏哪块再进 HUD 编辑器单独关。 */
+        /**
+         * Master switch for all HUDs (default on--the one exception to the
+         * Tweakeroo-style "everything off" defaults): turning it off hides
+         * all 11 HUDs, outweighing the per-HUD visibility switches in the
+         * editor. Of the eleven independent visibilities only roll stats
+         * ships on, the other ten off, so a fresh game shows the roll stats
+         * block first and every other HUD is dragged out of the editor on
+         * demand; existing values in old config files are never reset
+         * (defaults apply only when the file is missing), so upgrading
+         * players keep their layouts as-is
+         */
         public static final ConfigBooleanHotkeyed HUD_MASTER =
-                new ConfigBooleanHotkeyed("utilityHud", false, "").apply(PREFIX_QOL);
-        /** 波次出生音效总开关（可绑热键）：只管「出声或不出声」，涵盖波次出生提示音
-         * 与末波 3-2-1 倒计时；地图生效范围（4 个地图开关）与音效 ID / 音高这些细节
-         * 留在「全局配置」页慢慢调。默认关。 */
+                new ConfigBooleanHotkeyed("utilityHud", true, "").apply(PREFIX_QOL);
+        /**
+         * Wave spawn sound master switch (hotkeyed): governs only "sound or
+         * silence", covering both the wave spawn alerts and the final-wave
+         * 3-2-1 countdown.
+         * Map coverage (the 4 map switches) and sound ID / pitch details
+         * live on the global config page; default off
+         */
         public static final ConfigBooleanHotkeyed WAVE_SOUND_ENABLED =
                 new ConfigBooleanHotkeyed("waveSoundEnabled", false, "").apply(PREFIX_QOL);
-        /** 回合用时录制总开关（可绑热键，默认关，与其余功能开关一致）：只管播或不播
-         * 回合用时统计；播报密度（每回合 / 每 5 / 每 10）在「全局配置」页按地图挑。 */
+        /**
+         * Round timing record master switch (hotkeyed, default off like the
+         * other feature switches): governs only whether round time stats
+         * are announced; density (every round / every 5 / every 10) is
+         * picked per map on the global config page
+         */
         public static final ConfigBooleanHotkeyed RECORD_ENABLED =
                 new ConfigBooleanHotkeyed("recordEnabled", false, "").apply(PREFIX_QOL);
-        /** 队友 ESP：为名单内战斗中（绿）/ 倒地身体（黄）的队友绘制线框——实时掌握队友状态。
-         * 渲染机制（{@link #TEAMMATE_ESP_RENDER_MODE}）控制是否穿墙。 */
+        /**
+         * Teammate ESP: draws wireframes on roster teammates in combat
+         * (red) or downed body (yellow)--teammate state at a glance.
+         * The render mode ({@link #TEAMMATE_ESP_RENDER_MODE}) decides
+         * LEQUAL-only or an extra ALWAYS through-wall layer
+         */
         public static final ConfigBooleanHotkeyed TEAMMATE_ESP =
                 new ConfigBooleanHotkeyed("teammateEsp", false, "").apply(PREFIX_QOL);
-        /** 僵尸 ESP：为僵尸 / 狼 / 烈焰人等敌对生物绘制红色线框——扫图时一眼看清威胁位置。
-         * 渲染机制（{@link #ZOMBIE_ESP_RENDER_MODE}）控制是否穿墙。 */
+        /**
+         * Zombie ESP: draws green wireframes on hostile mobs (zombies,
+         * wolves, blazes, and friends)--threat positions at a glance while
+         * clearing the map; turns orange when the boss special mark is on.
+         * The render mode ({@link #ZOMBIE_ESP_RENDER_MODE}) decides
+         * LEQUAL-only or an extra ALWAYS through-wall layer
+         */
         public static final ConfigBooleanHotkeyed ZOMBIE_ESP =
                 new ConfigBooleanHotkeyed("zombieEsp", false, "").apply(PREFIX_QOL);
-        /** 道具 ESP：为已刷出的强化道具盔甲架绘制白色线框——别让道具刷在角落看不见。
-         * 渲染机制（{@link #POWERUP_ESP_RENDER_MODE}）控制是否穿墙。 */
+        /**
+         * Powerup ESP: draws white wireframes on spawned powerup armor
+         * stands--no more powerups lost in a corner.
+         * The render mode ({@link #POWERUP_ESP_RENDER_MODE}) decides
+         * LEQUAL-only or an extra ALWAYS through-wall layer
+         */
         public static final ConfigBooleanHotkeyed POWERUP_ESP =
                 new ConfigBooleanHotkeyed("powerupEsp", false, "").apply(PREFIX_QOL);
+        /**
+         * Entity health bar master switch (hotkeyed, default off): draws
+         * health bars over hostile entities, independent of the ESP
+         * switches.
+         * Through-wall behavior is decided by
+         * {@link #HEALTH_BAR_RENDER_MODE}; boss-exclusive colors see
+         * {@link #BOSS_HEALTH_BAR_MARK}
+         */
         public static final ConfigBooleanHotkeyed ENTITY_HEALTH_BAR =
                 new ConfigBooleanHotkeyed("entityHealthBar", false, "").apply(PREFIX_QOL);
-        /** 队友 ESP 渲染机制：常规（仅深度层，墙后不可见）/ 穿墙（深度+穿墙双层，墙后可见）。默认常规。 */
+        /**
+         * Damage / heal floating number master switch (hotkeyed, default
+         * off): an entity whose health changes pops a number on the spot--
+         * red for damage, green for healing, the value being the health
+         * change the client observed.
+         * Instakills also produce only the number; there is no "INSTAKILL"
+         * text branch. These are not vanilla particles, so
+         * {@code NO_PARTICLES} does not cover them; active in Zombies games
+         * only
+         */
+        public static final ConfigBooleanHotkeyed DAMAGE_NUMBER_ENABLED =
+                new ConfigBooleanHotkeyed("damageNumber", false, "").apply(PREFIX_QOL);
+        /**
+         * Boss health bar special mark: boss-type mobs (giants, elders,
+         * anything with a Hypixel health bar) get the exclusive four-stage
+         * palette purple - yellow - orange - red and a raised bar, offset
+         * from the mobs' green / yellow / red so they read at a glance.
+         * Default on--a boss bar appears in its exclusive palette from the
+         * start; turn it off manually only to make it look like a normal
+         * mob.
+         * Plain boolean, no hotkey; depends on {@link #ENTITY_HEALTH_BAR}
+         * (the health bar master switch)
+         */
+        public static final ConfigBoolean BOSS_HEALTH_BAR_MARK =
+                new ConfigBoolean("bossHealthBarMark", true).apply(PREFIX_QOL);
+        /**
+         * Boss ESP special mark: boss-type mobs get an orange wireframe
+         * (vs the green one for normal mobs) to lock high-threat targets at
+         * a glance.
+         * Default on--a boss frame is orange from the start; turn it off
+         * manually only to share the normal mobs' green.
+         * Plain boolean, no hotkey; depends on {@link #ZOMBIE_ESP}
+         */
+        public static final ConfigBoolean BOSS_ESP_MARK =
+                new ConfigBoolean("bossEspMark", true).apply(PREFIX_QOL);
+        /**
+         * Teammate ESP render mode: NORMAL draws only the LEQUAL depth
+         * layer; THROUGH_WALLS adds a translucent ALWAYS layer so
+         * wall-hidden parts show through--default NORMAL
+         */
         public static final ConfigOptionList TEAMMATE_ESP_RENDER_MODE =
                 new ConfigOptionList("teammateEspRenderMode", EspRenderMode.NORMAL).apply(PREFIX_QOL);
-        /** 僵尸 ESP 渲染机制：常规（仅深度层，墙后不可见）/ 穿墙（深度+穿墙双层，墙后可见）。默认常规。 */
+        /** Zombie ESP render mode: values and side effects same as {@link #TEAMMATE_ESP_RENDER_MODE} */
         public static final ConfigOptionList ZOMBIE_ESP_RENDER_MODE =
                 new ConfigOptionList("zombieEspRenderMode", EspRenderMode.NORMAL).apply(PREFIX_QOL);
-        /** 道具 ESP 渲染机制：常规（仅深度层，墙后不可见）/ 穿墙（深度+穿墙双层，墙后可见）。默认常规。 */
+        /** Powerup ESP render mode: values and side effects same as {@link #TEAMMATE_ESP_RENDER_MODE} */
         public static final ConfigOptionList POWERUP_ESP_RENDER_MODE =
                 new ConfigOptionList("powerupEspRenderMode", EspRenderMode.NORMAL).apply(PREFIX_QOL);
-        /** 僵尸血条渲染机制：常规（深度测试，墙后不可见）/ 穿墙（始终可见）。默认常规。 */
+        /**
+         * Health bar render mode: NORMAL uses LEQUAL depth testing;
+         * THROUGH_WALLS uses ALWAYS so the bar is always visible--default
+         * NORMAL.
+         * Shares the ESP enum, but the bar picks a single layer instead of
+         * stacking two like ESP
+         */
         public static final ConfigOptionList HEALTH_BAR_RENDER_MODE =
                 new ConfigOptionList("healthBarRenderMode", EspRenderMode.NORMAL).apply(PREFIX_QOL);
-        /** 总穿墙渲染距离（滑动条，5 ~ 200 格，默认 100）：穿墙渲染（穿墙模式下的 ESP 穿墙层、
-         * 血条的穿透显示）的最大生效距离。超出该距离的实体不再穿墙显示——ESP 线框退回仅深度层、
-         * 血条退回深度测试（墙后不可见）。单一总开关，对所有 ESP 类型与血条统一生效。 */
+        /**
+         * Damage / heal number render mode: NORMAL uses depth testing only
+         * (hidden behind walls); THROUGH_WALLS uses SEE_THROUGH so numbers
+         * show through walls, falling back to depth testing beyond
+         * {@link #THROUGH_WALL_RENDER_DISTANCE}.
+         * Shares the ESP / health bar enum; default NORMAL
+         */
+        public static final ConfigOptionList DAMAGE_NUMBER_RENDER_MODE =
+                new ConfigOptionList("damageNumberRenderMode", EspRenderMode.NORMAL).apply(PREFIX_QOL);
+        /**
+         * Global through-wall render distance (slider, 5-200 blocks, default
+         * 100): the maximum range of through-wall rendering (the ESP
+         * through-wall layer in that mode, and the health bar's
+         * see-through display). Beyond it, entities stop showing through
+         * walls--ESP wireframes fall back to the depth layer only, health
+         * bars fall back to depth testing (hidden behind walls).
+         * One global switch covering every ESP type and the health bar
+         */
         public static final ConfigDouble THROUGH_WALL_RENDER_DISTANCE =
                 new ConfigDouble("throughWallRenderDistance", 100.0, 5.0, 200.0, true).apply(PREFIX_QOL);
+        /**
+         * Auto-hide nearby players master switch (hotkeyed, default off):
+         * cancels rendering of players within {@code <1.4} blocks
+         * outright--out of sight, out of the way for teammates blocking the
+         * view. Gating details in {@code HideNearbyPlayer.shouldHide}
+         * (Zombies games only, not yourself, not sleeping,
+         * {@code maxHealth < 100})
+         */
         public static final ConfigBooleanHotkeyed PLAYER_INVISIBLE =
                 new ConfigBooleanHotkeyed("playerInvisible", false, "").apply(PREFIX_QOL);
-        /** 拦截原生 Boss 血条（屏幕顶部）：开启后不再渲染 BossBarHud，让屏幕顶部干净些。 */
+        /**
+         * Intercept the native boss bar (top of screen): when on,
+         * BossBarHud is no longer rendered, keeping the top of the screen
+         * cleaner
+         */
         public static final ConfigBooleanHotkeyed HIDE_BOSS_BAR =
                 new ConfigBooleanHotkeyed("hideBossBar", false, "").apply(PREFIX_QOL);
-        /** 隐藏原生计分板（Hypixel 右侧侧边栏）：只是藏起渲染，mod 读 / 改计分板数据
-         * 照常走（吃独食机制），所以隐藏不伤任何依赖计分板的逻辑。 */
-        public static final ConfigBooleanHotkeyed HIDE_SCOREBOARD =
-                new ConfigBooleanHotkeyed("hideScoreboard", false, "").apply(PREFIX_QOL);
-        /** 屏蔽除开火外的右键操作：准星射线无视隐形盔甲架（全息字：门价 / 机器提示 /
-         * 道具字样），交互方块的右键反应也一并跳过——右键只开枪，避免误触。
-         * 代价是开启期间没法操作机器 / 门等交互方块（买枪 / 开门前得临时关掉）；
-         * 仅 Zombies 生效。默认关。 */
+        /**
+         * Blocks right-click actions other than firing: the crosshair ray
+         * ignores the invisible armor stands behind holograms (door
+         * prices, machine hints, powerup labels), and interactive blocks
+         * skip their right-click response--right click only fires, no
+         * accidental interactions.
+         * The cost: machines, doors, and other interactive blocks cannot
+         * be used while on (temporarily switch it off before buying a gun
+         * or opening a door); Zombies games only, default off
+         */
         public static final ConfigBooleanHotkeyed RIGHT_CLICK_FIRE_ONLY =
                 new ConfigBooleanHotkeyed("rightClickFireOnly", false, "").apply(PREFIX_QOL);
-        /** 无发射粒子：从收包源头取消玩家附近（约 5.1 格）的枪口火焰 / 烟雾 / 火花粒子，
-         * 仅 Zombies 且主手持僵尸枪时生效。cancel 的是入站粒子包，零发包、只影响本地
-         * 显示——别人看我们照样开枪有火光。默认关。 */
-        public static final ConfigBooleanHotkeyed NO_GUN_FIRE =
-                new ConfigBooleanHotkeyed("noGunFire", false, "").apply(PREFIX_QOL);
-        /** 无火焰效果：着火时完全移除屏幕火焰遮罩（单一开关，取消渲染不重绘，不打断
-         * 别的画面）。仅 Zombies 生效。默认关。 */
+        /**
+         * No particles: swallows every particle in the client world (muzzle
+         * flash, block-break dust, fire smoke, item pickup, firework
+         * bursts).
+         * Cancels at the enqueue point
+         * {@code ParticleManager.addParticle(Particle)}--particles never
+         * tick, never enter the texture queue, never render; the emit side
+         * remains, only the display layer is empty.
+         * Zombies games only (like the other features), default off
+         */
+        public static final ConfigBooleanHotkeyed NO_PARTICLES =
+                new ConfigBooleanHotkeyed("noParticles", false, "").apply(PREFIX_QOL);
+        /**
+         * No fire effect: removes the on-screen fire overlay entirely while
+         * burning (a single switch--cancel the render, no repaint, nothing
+         * else disturbed); Zombies games only, default off
+         */
         public static final ConfigBooleanHotkeyed NO_FIRE_EFFECT =
-                new ConfigBooleanHotkeyed("noFireEffect", false, "").apply(PREFIX_QOL);
-        /** 外星游乐园自动指挥：AA 图每回合开始自动按「全局配置」页的输出方式 / 信息模板
-         * 播报回合指挥（推荐点位 / 首领 / 难度）。仅外星游乐园（AA）生效；HUD 显示由
-         * HUD 总开关 + HUD 编辑器里的该 HUD 开关独立控制。默认关。 */
-        public static final ConfigBooleanHotkeyed AA_COMMAND_ENABLED =
-                new ConfigBooleanHotkeyed("aaCommandEnabled", false, "").apply(PREFIX_QOL);
-        /** 平滑缩放功能总开关（可绑热键，默认关）：打开后，在 Zombies 局内按「全局配置」页
-         * 的缩放快捷键（默认 C）即可缩放视角。倍率 / 时长 / 动画 / 按键行为与快捷键绑定
-         * 都放在「全局配置」页，这里只管开不开这门功能。 */
+                new ConfigBooleanHotkeyed("fireOverlay", false, "").apply(PREFIX_QOL);
+        /**
+         * Alien Arcadium auto command: at each round start on the AA map,
+         * automatically announces the round command (recommended points /
+         * boss / difficulty) via the output channel and template from the
+         * global config page.
+         * Alien Arcadium only; HUD display is governed independently by the
+         * HUD master switch plus this HUD's own switch in the editor,
+         * default off
+         */
+        public static final ConfigBooleanHotkeyed AA_AUTO_COMMAND_ENABLED =
+                new ConfigBooleanHotkeyed("aaAutoCommandEnabled", false, "").apply(PREFIX_QOL);
+        /**
+         * Smooth zoom master switch (hotkeyed, default off): when on, the
+         * zoom hotkey from the global config page (default C) zooms the
+         * view inside a Zombies game.
+         * Magnification / durations / easing / key behavior and the hotkey
+         * binding all live on the global config page; this switch only
+         * opens or closes the feature
+         */
         public static final ConfigBooleanHotkeyed ZOOM_ENABLED =
                 new ConfigBooleanHotkeyed("zoomEnabled", false, "").apply(PREFIX_QOL);
-        /** 永久潜行总开关（可绑热键，默认关）：开启后在 Zombies 局内强制潜行——下蹲动画、
-         * 防掉落边缘、缩小碰撞箱，走完整 vanilla 潜行状态机，不掉进奇怪状态。
-         * 默认在 GUI 界面（背包等）里不生效，想改去「全局配置」页。 */
+        /**
+         * Always sneak master switch (hotkeyed, default off): forces
+         * sneaking in Zombies games--crouch animation, edge protection,
+         * smaller hitbox, via the full vanilla sneak state machine so you
+         * never land in a weird state.
+         * Does not apply inside GUIs (inventory and friends) by default;
+         * change that on the global config page
+         */
         public static final ConfigBooleanHotkeyed ALWAYS_SNEAK_ENABLED =
                 new ConfigBooleanHotkeyed("alwaysSneakEnabled", false, "").apply(PREFIX_QOL);
-        /** 永久疾跑总开关（可绑热键，默认关）：开启后在 Zombies 局内按 W 前进即自动疾跑，
-         * 等价于疾跑键永远按住——但饥饿 / 失明 / 泡水 / 手持使用物品这些原版疾跑约束
-         * 一条不删，游戏该不让你跑就不让你跑。 */
+        /**
+         * Always sprint master switch (hotkeyed, default off): in a Zombies
+         * game, walking forward with W auto-sprints, as if the sprint key
+         * were held forever.
+         * The vanilla sprint constraints--hunger, blindness, in water,
+         * using an item--stay intact one and all: when the game says you
+         * can't sprint, you can't
+         */
         public static final ConfigBooleanHotkeyed ALWAYS_SPRINT_ENABLED =
                 new ConfigBooleanHotkeyed("alwaysSprintEnabled", false, "").apply(PREFIX_QOL);
-        /** 伽马覆写总开关（可绑热键，默认关）：开启后在 Zombies 局内把游戏亮度强制设为
-         * 「全局配置」页的覆写值（默认 16，夜视级，不受原版亮度滑条 0~1 限制）；
-         * 关闭即还原玩家原亮度。纯客户端视觉，只改显示不发包。 */
+        /**
+         * Gamma override master switch (hotkeyed, default off): in a
+         * Zombies game, forces game brightness to the override value from
+         * the global config page (default 16, night-vision level, not
+         * limited by the vanilla brightness slider's 0-1); turning it off
+         * restores the player's original brightness.
+         * Pure client-side visuals: display only, no packets sent
+         */
         public static final ConfigBooleanHotkeyed GAMMA_OVERRIDE_ENABLED =
                 new ConfigBooleanHotkeyed("gammaOverrideEnabled", false, "").apply(PREFIX_QOL);
-        /** 自由视角总开关（可绑热键，默认关）：开启后在 Zombies 局内把渲染视角切到替身
-         * 相机实体——相机脱离身体自由飞行（WASD 移动 + 鼠标转向），玩家本体冻结原地。
-         * 相机飞不飞、能不能交互，由「全局配置」页的 playerMovement / playerInputs
-         * 子选项决定；关闭瞬间还原，玩家零残留。 */
+        /**
+         * Free camera master switch (hotkeyed, default off): in a Zombies
+         * game, moves the render view to a stand-in camera entity--the
+         * camera detaches and flies freely (WASD + mouse) while the
+         * player's body freezes in place.
+         * Whether the player can move or interact while the camera flies is
+         * decided by the playerMovement / playerInputs sub-options on the
+         * global config page; disabling restores everything instantly,
+         * zero residue on the player
+         */
         public static final ConfigBooleanHotkeyed FREE_CAMERA_ENABLED =
                 new ConfigBooleanHotkeyed("freeCameraEnabled", false, "").apply(PREFIX_QOL);
-        /** 打开配置界面（默认组合键 Z+X）——按一下直达 MaLiLib 配置页，最常用的入口之一。 */
+        /** Open the config UI (default combo Z+X)--one press straight to the MaLiLib config page, one of the most-used entries */
         public static final ConfigHotkey OPEN_GUI_CONFIGS =
                 new ConfigHotkey("openConfigGui", "Z,X").apply(PREFIX_QOL);
-        /** 打开 HUD 编辑器——HUD 坐标 / 缩放 / 独立可见性的拖拽入口，见 {@link HUDEditor}。 */
+        /** Open the HUD editor--the drag-in entry for HUD coordinates / scale / independent visibility; see {@link HUDEditor} */
         public static final ConfigHotkey OPEN_HUD_EDITOR =
                 new ConfigHotkey("openHudEditor", "").apply(PREFIX_QOL);
 
+        /** All of this group's feature switches, render parameters, and entry hotkeys, read/written by MaLiLib under the {@code QoL} section */
         public static final ImmutableList<IConfigBase> OPTIONS = ImmutableList.of(
                 HUD_MASTER,
                 WAVE_SOUND_ENABLED,
@@ -382,18 +967,21 @@ public class GlobalConfig implements IConfigHandler {
                 ZOMBIE_ESP,
                 POWERUP_ESP,
                 ENTITY_HEALTH_BAR,
+                DAMAGE_NUMBER_ENABLED,
+                BOSS_HEALTH_BAR_MARK,
+                BOSS_ESP_MARK,
                 TEAMMATE_ESP_RENDER_MODE,
                 ZOMBIE_ESP_RENDER_MODE,
                 POWERUP_ESP_RENDER_MODE,
                 HEALTH_BAR_RENDER_MODE,
+                DAMAGE_NUMBER_RENDER_MODE,
                 THROUGH_WALL_RENDER_DISTANCE,
                 PLAYER_INVISIBLE,
                 HIDE_BOSS_BAR,
-                HIDE_SCOREBOARD,
                 RIGHT_CLICK_FIRE_ONLY,
-                NO_GUN_FIRE,
+                NO_PARTICLES,
                 NO_FIRE_EFFECT,
-                AA_COMMAND_ENABLED,
+                AA_AUTO_COMMAND_ENABLED,
                 ZOOM_ENABLED,
                 ALWAYS_SNEAK_ENABLED,
                 ALWAYS_SPRINT_ENABLED,
@@ -403,6 +991,10 @@ public class GlobalConfig implements IConfigHandler {
                 OPEN_HUD_EDITOR
         );
 
+        /**
+         * The hotkeys within the QoL group (this group's feature-switch
+         * hotkeys plus open query GUI), a component of {@link #ALL_HOTKEYS}
+         */
         public static final List<IHotkey> HOTKEY_LIST = ImmutableList.of(
                 HUD_MASTER,
                 WAVE_SOUND_ENABLED,
@@ -411,13 +1003,13 @@ public class GlobalConfig implements IConfigHandler {
                 ZOMBIE_ESP,
                 POWERUP_ESP,
                 ENTITY_HEALTH_BAR,
+                DAMAGE_NUMBER_ENABLED,
                 PLAYER_INVISIBLE,
                 HIDE_BOSS_BAR,
-                HIDE_SCOREBOARD,
                 RIGHT_CLICK_FIRE_ONLY,
-                NO_GUN_FIRE,
+                NO_PARTICLES,
                 NO_FIRE_EFFECT,
-                AA_COMMAND_ENABLED,
+                AA_AUTO_COMMAND_ENABLED,
                 ZOOM_ENABLED,
                 ALWAYS_SNEAK_ENABLED,
                 ALWAYS_SPRINT_ENABLED,
@@ -428,9 +1020,15 @@ public class GlobalConfig implements IConfigHandler {
                 Query.OPEN_QUERY_GUI
         );
 
-        /** 全部可绑定热键（含各分组的 {@link ConfigBooleanHotkeyed} 功能开关）。只有注册进
-         * MaLiLib 键位管理，热键才真正生效——否则配置界面能绑、按下却静默失效；
-         * 功能开关注册后 MaLiLib 自带 toggle 回调，开关注册即接线，不用再手动挂事件。
+        /**
+         * Every bindable hotkey (including each group's
+         * {@link ConfigBooleanHotkeyed} feature switches).
+         * A hotkey only works once registered with MaLiLib's key binding
+         * manager--otherwise the config UI lets you bind it, but the press
+         * silently does nothing; once a {@link ConfigBooleanHotkeyed}
+         * switch is registered, MaLiLib provides the toggle callback, so
+         * registration itself is the wiring and no manual event hooks are
+         * needed
          */
         public static final List<IHotkey> ALL_HOTKEYS = ImmutableList.<IHotkey>builder()
                 .addAll(HOTKEY_LIST)
@@ -444,61 +1042,92 @@ public class GlobalConfig implements IConfigHandler {
                         Hide.HIDE_LUCKY_CHEST,
                         Hide.HIDE_OPEN_AREA,
                         Hide.HIDE_PLAYER_CONNECTION))
-                .add(Zoom.ZOOM_KEY) // 缩放键：纯热键（无布尔），缩放时按 isKeybindHeld/isPressed 轮询
+                .add(Zoom.ZOOM_KEY) // pure hotkey, no boolean; the physical state is read per tick via isKeyDown
                 .build();
     }
 
-    // ======================= 玩家数据查询 (player query) =======================
+    // ----Player data query (player query)----
 
     /**
-     * 玩家数据查询：Hypixel API Key（掩码显示 + 加密落盘）与打开查询界面的热键。
+     * Player data query: the Hypixel API key (masked display + encrypted on
+     * disk) and the hotkey that opens the query GUI
      *
-     * <p>Key 的明文只在 {@link #getApiKeyPlain()} 一处交给查询逻辑读取，界面文本框
-     * 始终显示掩码——即使别人盯屏也抄不走完整 Key。
+     * <p>The key's plaintext reaches the query logic only through
+     * {@link #getApiKeyPlain()}, and the UI text box always shows the
+     * mask--even someone watching your screen cannot copy the full key
      */
     public static class Query {
+        /**
+         * Hypixel API key for player data queries (masked in the UI,
+         * encrypted to disk via {@link ApiKeyCrypto});
+         * its translation prefix reuses the QoL group's {@code PREFIX_QOL}
+         */
         public static final ConfigApiKey API_KEY =
                 new ConfigApiKey("apiKey", "").apply(PREFIX_QOL);
-        /** 打开玩家数据查询界面（自由查询 / 局内查询）——查询功能的唯一入口热键。 */
+        /** Open the player data query GUI (free query / in-game query)--the single entry hotkey of the query feature */
         public static final ConfigHotkey OPEN_QUERY_GUI =
                 new ConfigHotkey("openQueryGui", "").apply(PREFIX_QOL);
 
+        /**
+         * The API key and GUI hotkey written to the {@code Query} section;
+         * load and save share this collection
+         */
         public static final ImmutableList<IConfigValue> OPTIONS = ImmutableList.of(
                 API_KEY,
                 OPEN_QUERY_GUI
         );
     }
 
-    /** 当前配置的 Hypixel API Key 明文，查询逻辑统一从这取；未配置时返回空串。 */
+    /**
+     * The Hypixel API key plaintext currently used by the query logic--read
+     * only from the masked config item's dedicated plaintext accessor
+     *
+     * @return the configured key; an empty string when unset or decryption
+     * failed
+     */
     public static String getApiKeyPlain() {
         return Query.API_KEY.getPlainValue();
     }
 
-    // ======================= 聊天过滤 (chat filter) =======================
+    // ----Chat filter (chat filter)----
 
     /**
-     * 聊天消息过滤开关（默认全关，用户按需开启）。统一用 {@link ConfigBooleanHotkeyed}：
-     * 每个过滤项既能单独绑热键随时切换，也能在配置界面用开关按钮直接启停。
+     * Chat message filter switches (all off by default; enable as needed),
+     * uniformly {@link ConfigBooleanHotkeyed}: each filter can be toggled
+     * anytime via its own hotkey, or switched directly with the toggle
+     * button in the config UI
      *
-     * <p>故意不提供「击倒 / 救治 / 道具拾取」的隐藏——这三类消息正是 mod 队伍统计与
-     * 道具检测的聊天输入，藏了它们功能就瞎了，所以宁可让玩家自己决定。
+     * <p>There is deliberately no hiding for "downed / revived / powerup
+     * pickup"--those three message classes are the chat input this mod's
+     * team stats and powerup detection feed on; hiding them would blind
+     * those features, so the choice is left to the player
      */
     public static class Hide {
+        /** Hide gold-gain messages (like "+N coins"), default off */
         public static final ConfigBooleanHotkeyed HIDE_GOLD =
                 new ConfigBooleanHotkeyed("hideGold", false, "").apply(PREFIX_HIDE);
+        /** Hide window repair start / finish and "window repaired" messages, default off */
         public static final ConfigBooleanHotkeyed HIDE_WINDOW =
                 new ConfigBooleanHotkeyed("hideWindowRepair", false, "").apply(PREFIX_HIDE);
+        /** Hide shot-hit-target messages like "X hit the target!", default off */
         public static final ConfigBooleanHotkeyed HIDE_HIT_TARGET =
                 new ConfigBooleanHotkeyed("hideHitTarget", false, "").apply(PREFIX_HIDE);
+        /** Hide lucky chest opening messages, default off */
         public static final ConfigBooleanHotkeyed HIDE_LUCKY_CHEST =
                 new ConfigBooleanHotkeyed("hideLuckyChest", false, "").apply(PREFIX_HIDE);
+        /** Hide "area opened" and "area unlocked" messages, default off */
         public static final ConfigBooleanHotkeyed HIDE_OPEN_AREA =
                 new ConfigBooleanHotkeyed("hideOpenArea", false, "").apply(PREFIX_HIDE);
-        /** 玩家进出（默认关）：会连带隐藏「X 离开了游戏」行——队伍统计的 LEFT 事件
-         * 不依赖这条聊天，靠计分板兜底，所以藏着也不误报。 */
+        /**
+         * Player join/leave (default off): also hides "X left the game"
+         * lines--the team stats LEFT event does not depend on that chat and
+         * falls back to the scoreboard, so hiding it causes no false
+         * reports
+         */
         public static final ConfigBooleanHotkeyed HIDE_PLAYER_CONNECTION =
                 new ConfigBooleanHotkeyed("hidePlayerConnection", false, "").apply(PREFIX_HIDE);
 
+        /** The six chat filter switches, written to the {@code Hide} section in this order and shown to the config UI */
         public static final ImmutableList<IConfigValue> OPTIONS = ImmutableList.of(
                 HIDE_GOLD,
                 HIDE_WINDOW,
@@ -509,37 +1138,52 @@ public class GlobalConfig implements IConfigHandler {
         );
     }
 
-    // ======================= 平滑缩放 (smooth zoom) =======================
+    // ----Smooth zoom (smooth zoom)----
 
     /**
-     * 平滑缩放（Zoomify 简化版）：5 个参数 + 缩放快捷键。
+     * Smooth zoom (a simplified Zoomify): 5 parameters plus the zoom hotkey
      *
-     * <p>只有在「实用功能」页的 ZOOM_ENABLED 开启后、且正处于 Zombies 局内时才生效
-     * （门控见 {@link cn.gsfy.nmz.client.feature.zoom.ZoomHandler#isActive()}）；
-     * 缩放走 FOV 除法实现（注入 {@link net.minecraft.client.render.GameRenderer#getFov}），
-     * 所以视角拉近不重新建模，纯视觉放大。
+     * <p>Active only when ZOOM_ENABLED on the QoL page is on and you are
+     * inside a Zombies game (gating in
+     * {@link cn.gsfy.nmz.client.features.zoom.ZoomHandler#isActive()});
+     * zoom is implemented as FOV division (injecting
+     * {@link net.minecraft.client.render.GameRenderer#getFov}), so zooming
+     * in rebuilds nothing--purely visual magnification
      */
     public static class Zoom {
-        /** 完全放大时的倍率（1.0 ~ 10.0，默认 4.0，与 Zoomify 默认一致）——越大看得越细，也越晃。 */
+        /**
+         * Magnification at full zoom (1.0-10.0, default 4.0, matching
+         * Zoomify's default)--more detail, also more sway
+         */
         public static final ConfigDouble INITIAL_ZOOM =
                 new ConfigDouble("initialZoom", 4.0, 1.0, 10.0, true).apply(PREFIX_ZOOM);
-        /** 放大动画时长（秒，0.1 ~ 5.0，默认 1.0）——拉近太快晃眼、太慢耽误开枪，给个中间值。 */
+        /**
+         * Zoom-in animation duration (seconds, 0.1-5.0, default 1.0)--too
+         * fast jars the eyes, too slow delays firing; a middle value
+         */
         public static final ConfigDouble ZOOM_IN_TIME =
                 new ConfigDouble("zoomInTime", 1.0, 0.1, 5.0, true).apply(PREFIX_ZOOM);
-        /** 缩小动画时长（秒，0.1 ~ 5.0，默认 0.5）——缩回比放大快，视野恢复不拖沓。 */
+        /** Zoom-out animation duration (seconds, 0.1-5.0, default 0.5)--zooming back is faster than zooming in, so the view recovers without lag */
         public static final ConfigDouble ZOOM_OUT_TIME =
                 new ConfigDouble("zoomOutTime", 0.5, 0.1, 5.0, true).apply(PREFIX_ZOOM);
-        /** 动画过渡方式（缓动曲线）：放大用所选曲线，缩小自动用其相反——默认缓出指数，
-         * 与 Zoomify 一致。细节见 {@link ZoomEasing}。 */
+        /**
+         * Animation easing curve: zoom-in uses the chosen curve, zoom-out
+         * automatically its opposite--default ease-out exponential,
+         * matching Zoomify; details in {@link ZoomEasing}
+         */
         public static final ConfigOptionList EASING =
                 new ConfigOptionList("easing", ZoomEasing.EASE_OUT_EXP).apply(PREFIX_ZOOM);
-        /** 按键行为：长按 (HOLD) / 点按切换 (TOGGLE)——习惯瞄一眼松手选 HOLD，想常驻缩放就选 TOGGLE。 */
+        /**
+         * Key behavior: hold (HOLD) / press-to-toggle (TOGGLE)--
+         * pick HOLD for peek-and-release, TOGGLE to keep zoom resident
+         */
         public static final ConfigOptionList KEY_BEHAVIOUR =
                 new ConfigOptionList("keyBehaviour", ZoomKeyBehaviour.HOLD).apply(PREFIX_ZOOM);
-        /** 缩放快捷键（默认 C）；配合 KEY_BEHAVIOUR 决定按住还是切换。 */
+        /** Zoom hotkey (default C); together with KEY_BEHAVIOUR decides hold vs toggle */
         public static final ConfigHotkey ZOOM_KEY =
                 new ConfigHotkey("zoomKey", "C").apply(PREFIX_ZOOM);
 
+        /** This group's magnification, durations, curve, key behavior, and hotkey, written to the {@code Zoom} section in this order */
         public static final ImmutableList<IConfigBase> OPTIONS = ImmutableList.of(
                 INITIAL_ZOOM,
                 ZOOM_IN_TIME,
@@ -550,76 +1194,105 @@ public class GlobalConfig implements IConfigHandler {
         );
     }
 
-    // ======================= 永久潜行 (always sneak) =======================
+    // ----Always sneak (always sneak)----
 
     /**
-     * 永久潜行配置组：总开关在 {@link QoL#ALWAYS_SNEAK_ENABLED}，这里只放它的子选项。
+     * Always sneak config group: the master switch is
+     * {@link QoL#ALWAYS_SNEAK_ENABLED}; only its sub-options live here
      *
-     * <p>全组只有一个「GUI 界面里是否仍强制潜行」的开关——把总开关的默认行为细分，
-     * 不另起炉灶；开了它才在菜单里也下蹲，否则一进背包就自动解除。
+     * <p>The whole group is one switch, "keep forcing sneak inside GUIs"--
+     * a refinement of the master switch's default behavior, not a separate
+     * mechanism; with it on you also crouch in menus, otherwise entering
+     * the inventory instantly un-sneaks you
      */
     public static class Sneak {
-        /** 允许在 GUI 界面（背包 / 容器等）中仍强制潜行。默认关——界面里解除强制，
-         * 免得一开背包角色就蹲下去，菜单里意外下蹲怪怪的。 */
+        /**
+         * Keep forcing sneak inside GUIs (inventory / containers), default
+         * off--GUIs release the force, so opening the inventory doesn't
+         * drop the character into a crouch, which looks odd in a menu
+         */
         public static final ConfigBoolean ALLOW_IN_GUIS =
                 new ConfigBoolean("alwaysSneakAllowInGuis", false).apply(PREFIX_SNEAK);
 
+        /** The GUI sneak sub-option written to the {@code Sneak} section */
         public static final ImmutableList<IConfigBase> OPTIONS = ImmutableList.of(
                 ALLOW_IN_GUIS
         );
     }
 
-    // ======================= 伽马覆写 (gamma override) =======================
+    // ----Gamma override (gamma override)----
 
     /**
-     * 伽马覆写配置组：总开关在 {@link QoL#GAMMA_OVERRIDE_ENABLED}，这里只放覆写的亮度值。
+     * Gamma override config group: the master switch is
+     * {@link QoL#GAMMA_OVERRIDE_ENABLED}; only the override brightness
+     * lives here
      *
-     * <p>只此一个参数，替总开关回答「亮到什么程度」；不直写原版选项，为什么绕开它
-     * 见下方 {@link #OVERRIDE_VALUE} 的踩坑说明。
+     * <p>A single parameter, answering "how bright" for the master switch;
+     * it never writes the vanilla option directly--why it dodges that is in
+     * {@link #OVERRIDE_VALUE}'s trap note below
      */
     public static class Gamma {
         /**
-         * 开启时作用于光照的亮度值（0.0 ~ 32.0，默认 16.0，夜视级；不受原版亮度滑条
-         * 0~1 限制）。
+         * The brightness applied to the lightmap while enabled (0.0-32.0,
+         * default 16.0, night-vision level; not limited by the vanilla
+         * brightness slider's 0-1)
          *
-         * <p>当初踩过坑：原版亮度选项的 codec 合法范围是 [0,1]，直接写 16 会让
-         * GameOptions.save() 编码越界报错，接着资源重载、直接黑屏——所以后来改成不碰
-         * vanilla 选项字段，由 {@code LightmapBrightnessMixin} 在
-         * LightmapTextureManager.update() 里用该值替换 BrightnessFactor 计算中的 gamma
-         * （原版 lightmap shader 对 BrightnessFactor 最终会 clamp 到 [0,1]，>1 安全产生
-         * 夜视级亮度）。原值无需存档：选项字段始终是玩家原值，离开 Zombies 自然还原。
+         * <p>One trap here: the vanilla brightness option's codec accepts
+         * only [0,1], so writing 16 straight into it makes
+         * {@code GameOptions.save()} fail with an out-of-range error,
+         * which then triggers a resource reload and a black screen--the
+         * vanilla option field must not be touched. Instead
+         * {@code LightmapBrightnessMixin} substitutes this value for the
+         * gamma in the BrightnessFactor computation inside
+         * {@code LightmapTextureManager.update()} (the vanilla lightmap
+         * shader clamps BrightnessFactor to [0,1] in the end, so
+         * {@code >1} safely produces night-vision-level brightness).
+         * The original value needs no backup: the option field always
+         * holds the player's own value, and leaving Zombies restores it
+         * naturally
          */
         public static final ConfigDouble OVERRIDE_VALUE =
                 new ConfigDouble("gammaOverrideValue", 16.0, 0.0, 32.0, true).apply(PREFIX_GAMMA);
 
+        /** The brightness override written to the {@code Gamma} section */
         public static final ImmutableList<IConfigBase> OPTIONS = ImmutableList.of(
                 OVERRIDE_VALUE
         );
     }
 
-    // ======================= 自由视角 (free camera) =======================
+    // ----Free camera (free camera)----
 
     /**
-     * 自由视角配置组：总开关在 {@link QoL#FREE_CAMERA_ENABLED}，这里放相机飞行模式下的
-     * 玩家移动 / 输入允许度与相机飞行速度。
+     * Free camera config group: the master switch is
+     * {@link QoL#FREE_CAMERA_ENABLED}; here live the player movement /
+     * input allowances and the camera fly speed
      *
-     * <p>两个布尔子选项决定飞行时玩家本体还能不能动、能不能操作——全关最省心，
-     * 相机只管飞，本体冻结，防止盲视误操作。
+     * <p>The two boolean sub-options decide whether the player's body can
+     * still move or act while the camera flies--both off is the simplest:
+     * the camera just flies, the body stays frozen, no blind fumbling
      */
     public static class FreeCam {
-        /** 允许玩家移动：开启后相机飞行期间玩家仍可走动，相机反而成了静止观察点；
-         * 关闭（默认）则玩家完全冻结，相机随 WASD / 鼠标自由飞行。
-         * 只有在「相机飞行模式」（即本项关闭）时，相机才受本组移动参数驱动。 */
+        /**
+         * Allow player movement: when on, the player can still walk while
+         * the camera flies, making the camera the stationary observation
+         * point; when off (default) the player is fully frozen and the
+         * camera flies with WASD / mouse
+         */
         public static final ConfigBoolean PLAYER_MOVEMENT =
                 new ConfigBoolean("playerMovement", false).apply(PREFIX_FREECAM);
-        /** 允许玩家输入：开启后相机飞行期间仍可攻击 / 挖掘 / 使用 / 交互；关闭（默认）则
-         * 完全封禁——本体冻着又乱操作，容易盲视误触，默认先锁死。 */
+        /**
+         * Allow player inputs: when on, attack / mine / use / interact
+         * still work while the camera flies; when off (default) they are
+         * fully blocked--a frozen body acting blindly is easy to misclick,
+         * so the default locks it down
+         */
         public static final ConfigBoolean PLAYER_INPUTS =
                 new ConfigBoolean("playerInputs", false).apply(PREFIX_FREECAM);
-        /** 相机飞行速度倍率（0.1 ~ 10.0，默认 1.0）；按住冲刺键再乘 ×3，赶路够快。 */
+        /** Camera fly speed multiplier (0.1-10.0, default 1.0); holding the sprint key multiplies by 3 again, fast enough to cover ground */
         public static final ConfigDouble SPEED =
                 new ConfigDouble("speed", 1.0, 0.1, 10.0, true).apply(PREFIX_FREECAM);
 
+        /** This group's movement, inputs, and speed, written to the {@code FreeCamera} section in this order */
         public static final ImmutableList<IConfigBase> OPTIONS = ImmutableList.of(
                 PLAYER_MOVEMENT,
                 PLAYER_INPUTS,
@@ -627,15 +1300,60 @@ public class GlobalConfig implements IConfigHandler {
         );
     }
 
-    // ======================= 枚举 =======================
+    /**
+     * Shared implementation of {@code IConfigOptionListEntry.cycle}--one
+     * click on the dropdown steps to the adjacent entry, wrapping around at
+     * the ends
+     *
+     * <p>The five enums (record frequency / alert output / zoom easing /
+     * zoom key behavior / ESP render mode) differ in cycling only by which
+     * full table they use: {@code values()} or their own {@code VALUES}
+     * snapshot; the logic is otherwise identical. Pulled into one static
+     * entry point so changing the cycling semantics (say, "reverse while
+     * holding Shift") touches one place
+     *
+     * @param values the enum's full ordered table; returns {@code null}
+     * when the table is empty (callers handle that themselves)
+     * @param current the current entry's index in that table; negatives are
+     * treated as 0
+     * @param forward true = step forward, false = step backward
+     * @return the entry after stepping
+     */
+    static IConfigOptionListEntry cycleOption(java.util.List<? extends IConfigOptionListEntry> values,
+                                              int current, boolean forward) {
+        int size = values.size();
+        if (size == 0) {
+            return null;
+        }
+        int id = Math.max(0, current);
+        if (forward) {
+            id = ++id >= size ? 0 : id;
+        } else {
+            id = --id < 0 ? size - 1 : id;
+        }
+        return values.get(id);
+    }
 
-    /** 回合用时录制频率选项（无「关闭」——录制只挑播报密度，开 / 关由实用功能页的
-     * {@link QoL#RECORD_ENABLED} 承担）：QUINTUPLE 每 5 回合、TENFOLD 每 10 回合、ALL 每回合都播。 */
+    // ----Enums----
+
+    /**
+     * Round timing record frequency option (no "off"--recording only picks
+     * announcement density; on/off is owned by
+     * {@link QoL#RECORD_ENABLED}): QUINTUPLE every 5 rounds, TENFOLD every
+     * 10 rounds, ALL every round
+     *
+     * <p>Implementation anchor: starting at round 1, one entry every N
+     * rounds ({@code currentRound%increment!=1} skips), so QUINTUPLE/
+     * TENFOLD hit rounds 1, 6, 11... / 1, 11, 21..., not round 5/10 and
+     * their multiples; ALL has increment 0 and records every round (same
+     * convention as TimeRecorder/README)
+     */
     public enum RecordTiming implements IConfigOptionListEntry {
         QUINTUPLE("quintuple"),
         TENFOLD("tenfold"),
         ALL("all");
 
+        /** UI dropdown set--a full {@link #values()} snapshot, shared by the GUI, parsing, and cycling */
         public static final ImmutableList<RecordTiming> VALUES = ImmutableList.copyOf(values());
 
         private final String configString;
@@ -644,16 +1362,22 @@ public class GlobalConfig implements IConfigHandler {
             this.configString = configString;
         }
 
+        /** MaLiLib serialization value: the lowercase configString (e.g. "quintuple") */
         @Override
         public String getStringValue() {
             return this.configString;
         }
 
+        /**
+         * Display name looked up in the current language; translation key
+         * {@code nomorezombies.config.record.timing.<configString>}
+         */
         @Override
         public String getDisplayName() {
             return StringUtils.translate("nomorezombies.config.record.timing." + this.configString);
         }
 
+        /** Config file string to enum: case-insensitive match; unknown values fall back to ALL (reason in the inline comment) */
         @Override
         public RecordTiming fromString(String value) {
             for (RecordTiming v : VALUES) {
@@ -661,37 +1385,29 @@ public class GlobalConfig implements IConfigHandler {
                     return v;
                 }
             }
-            return ALL; // 未知/旧值（如已移除的 "off"）回落默认，免得 ConfigOptionList.value 变 null 崩一屏
+            return ALL; // unknown values fall back to the default, so ConfigOptionList.value never goes null and crashes the screen
         }
 
+        /** {@link IConfigOptionListEntry} cycling: forward to the next entry, wrapping at the ends; backward mirrors it */
         @Override
         public IConfigOptionListEntry cycle(boolean forward) {
-            int id = this.ordinal();
-            if (forward) {
-                if (++id >= values().length) {
-                    id = 0;
-                }
-            } else {
-                if (--id < 0) {
-                    id = values().length - 1;
-                }
-            }
-            return values()[id];
+            return cycleOption(java.util.Arrays.asList(values()), this.ordinal(), forward);
         }
 
+        /** Same as getStringValue: some MaLiLib paths use toString() as the option value */
         @Override
         public String toString() {
             return this.getStringValue();
         }
     }
 
-    /** 道具提醒输出方式（镜像 NEZ ChatOutput；无「关闭」——道具提醒的开 / 关由
-     * {@link Powerups#POWERUP_PREDICT} 承担）：自己 / 队伍 / 公聊三档频道。 */
+    /** Powerup alert output channel (mirrors NEZ ChatOutput; no "off"--the powerup alert switch is owned by {@link Powerups#POWERUP_PREDICT}): self / team / public chat */
     public enum AlertOutput implements IConfigOptionListEntry {
         SELF("self"),
         PARTY("party"),
         CHAT("chat");
 
+        /** UI dropdown set; same convention as {@link RecordTiming#VALUES} */
         public static final ImmutableList<AlertOutput> VALUES = ImmutableList.copyOf(values());
 
         private final String configString;
@@ -700,16 +1416,22 @@ public class GlobalConfig implements IConfigHandler {
             this.configString = configString;
         }
 
+        /** Serialization same as {@link RecordTiming#getStringValue()} (lowercase configString) */
         @Override
         public String getStringValue() {
             return this.configString;
         }
 
+        /**
+         * Display name looked up in the current language; translation key
+         * {@code nomorezombies.config.powerup.output.<configString>}
+         */
         @Override
         public String getDisplayName() {
             return StringUtils.translate("nomorezombies.config.powerup.output." + this.configString);
         }
 
+        /** Config file string to enum: unknown values fall back to SELF; matching rules in {@link RecordTiming#fromString(String)} */
         @Override
         public AlertOutput fromString(String value) {
             for (AlertOutput v : VALUES) {
@@ -717,38 +1439,37 @@ public class GlobalConfig implements IConfigHandler {
                     return v;
                 }
             }
-            return SELF; // 未知/旧值回落默认，免得 ConfigOptionList.value 变 null 崩一屏
+            return SELF; // unknown/legacy values fall back to the default (reason in RecordTiming.fromString)
         }
 
+        /** Cycling: wraps at the ends; same rules as {@link RecordTiming#cycle(boolean)} */
         @Override
         public IConfigOptionListEntry cycle(boolean forward) {
-            int id = this.ordinal();
-            if (forward) {
-                if (++id >= values().length) {
-                    id = 0;
-                }
-            } else {
-                if (--id < 0) {
-                    id = values().length - 1;
-                }
-            }
-            return values()[id];
+            return cycleOption(java.util.Arrays.asList(values()), this.ordinal(), forward);
         }
 
+        /** Same as getStringValue (reason in {@link RecordTiming#toString()}) */
         @Override
         public String toString() {
             return this.getStringValue();
         }
     }
 
-    // ======================= 平滑缩放 (smooth zoom) =======================
+    // ----Smooth zoom (smooth zoom)----
 
-    /** 缩放动画过渡方式（无「关闭」——开 / 关由 {@link QoL#ZOOM_ENABLED} 总开关承担）。
+    /**
+     * Zoom animation easing (no "off"--on/off is owned by the
+     * {@link QoL#ZOOM_ENABLED} master switch)
      *
-     * <p>精简到 4 种核心曲线，是嵌入 mod 时做的取舍：放大用所选方式，缩小自动切到
-     * {@link #opposite()} 相反曲线（选 EASE_OUT_SINE → 放大缓出、缩小缓入，进出对称）。
-     * IN 方向的 EASE_IN_SINE / EASE_IN_EXP 保留在枚举里只给 opposite() 内部映射用，
-     * 不进下拉——{@link #VALUES} 才是 UI 展示 / fromString / cycle 的统一集合。 */
+     * <p>Trimmed to 4 core curves, a trade-off made when embedding into
+     * the mod: zoom-in uses the chosen curve and zoom-out automatically
+     * switches to {@link #opposite()}'s counterpart (pick EASE_OUT_SINE
+     * and you get ease-out zooming in, ease-in zooming out, symmetric both
+     * ways). The IN curves EASE_IN_SINE / EASE_IN_EXP stay in the enum
+     * solely as {@link #opposite()}'s internal mapping and never enter the
+     * dropdown--{@link #VALUES} is the single collection for UI display,
+     * fromString, and cycle
+     */
     public enum ZoomEasing implements IConfigOptionListEntry {
         LINEAR("linear") {
             @Override public double apply(double t) { return t; }
@@ -793,13 +1514,13 @@ public class GlobalConfig implements IConfigHandler {
             @Override public double apply(double t) { return t; }
         };
 
-        /** UI 展示集合：线性 / 缓出正弦 / 缓出指数(默认) / 瞬间——IN 方向曲线只给
-         * opposite() 内部映射，刻意不进下拉，免得玩家选到「反着缩」的怪曲线。 */
+        /** UI display and config parsing iterate only these four selectable curves;
+         *  the two IN curves serve {@link #opposite()} internally. */
         public static final ImmutableList<ZoomEasing> VALUES = ImmutableList.of(
                 LINEAR, EASE_OUT_SINE, EASE_OUT_EXP, INSTANT);
 
-        // Zoomify TransitionType EXP 曲线用到的预计算常数：1023 = 2^10 - 1，
-        // 名称自解释、一次算好，保证曲线在端点处平滑收尾到 [0,1]
+        // Precomputed constants for the Zoomify TransitionType EXP curve: 1023 = 2^10 - 1
+        // The four names say nothing; in order they are log2(1023) / 10ln(2) / ln(1023) / 1/1023
         private static final double LOG2_1023 = Math.log(1023.0) / Math.log(2.0);
         private static final double TEN_LN_2 = 10.0 * Math.log(2.0);
         private static final double LN_1023 = Math.log(1023.0);
@@ -811,40 +1532,61 @@ public class GlobalConfig implements IConfigHandler {
             this.configString = configString;
         }
 
-        /** 缓动核心：把线性进度 t ∈ [0,1] 映射为缓动后的进度（0 → 1），动画驱动逐帧调用。 */
+        /**
+         * The easing core: each animation frame maps linear progress onto
+         * curve progress.
+         *
+         * @param t linear progress, constrained by the caller to {@code [0, 1]}
+         * @return the eased progress
+         */
         public abstract double apply(double t);
 
-        /** 曲线反函数：方向反转时把进度重投影回线性空间，保证衔接连续；未实现反函数的曲线抛异常。 */
+        /**
+         * When direction reverses, re-projects curve progress back into linear
+         * space so the animation continues without a jump.
+         *
+         * @param x the curve progress to invert
+         * @return the corresponding linear progress
+         * @throws UnsupportedOperationException when the current curve has no inverse;
+         *  check {@link #hasInverse()} before calling
+         */
         public double inverse(double x) {
             throw new UnsupportedOperationException();
         }
 
-        /** 是否定义了 {@link #inverse(double)}：单边 IN/OUT 曲线有，INSTANT/LINEAR/IN_OUT 没有。 */
+        /** Whether {@link #inverse(double)} is defined; when false the inverse throws
+         * {@link UnsupportedOperationException}, so gate the animation reversal with it first. */
         public boolean hasInverse() {
             return false;
         }
 
-        /** 相反方向的曲线：放大用所选、缩小自动用其相反（ease-in ↔ ease-out；LINEAR/INSTANT 为自身）。 */
+        /** The opposite direction's curve: zoom-in uses the selection, zoom-out automatically uses its opposite
+         * (ease-in pairs with ease-out; LINEAR/INSTANT are their own). */
         public ZoomEasing opposite() {
-            switch (this) {
-                case EASE_OUT_SINE: return EASE_IN_SINE;
-                case EASE_IN_SINE: return EASE_OUT_SINE;
-                case EASE_OUT_EXP: return EASE_IN_EXP;
-                case EASE_IN_EXP: return EASE_OUT_EXP;
-                default: return this;
-            }
+            return switch (this) {
+                case EASE_OUT_SINE -> EASE_IN_SINE;
+                case EASE_IN_SINE -> EASE_OUT_SINE;
+                case EASE_OUT_EXP -> EASE_IN_EXP;
+                case EASE_IN_EXP -> EASE_OUT_EXP;
+                default -> this;
+            };
         }
 
+        /** Serialized value, same as {@link RecordTiming#getStringValue()} (e.g. "ease_out_exp"). */
         @Override
         public String getStringValue() {
             return this.configString;
         }
 
+        /** UI display name by the current language; translation key
+         * {@code nomorezombies.config.zoom.easing.<configString>}. */
         @Override
         public String getDisplayName() {
             return StringUtils.translate("nomorezombies.config.zoom.easing." + this.configString);
         }
 
+        /** Config file string -> enum: compared within {@link #VALUES} (no IN curves),
+         * falling back to the default EASE_OUT_EXP on no match. */
         @Override
         public ZoomEasing fromString(String value) {
             for (ZoomEasing v : VALUES) {
@@ -852,39 +1594,29 @@ public class GlobalConfig implements IConfigHandler {
                     return v;
                 }
             }
-            return EASE_OUT_EXP; // 未知/旧值回落默认，免得 ConfigOptionList.value 变 null 崩一屏
+            return EASE_OUT_EXP; // unknown/old values fall back to the default, so ConfigOptionList.value never turns null and crashes a screen
         }
 
+        /** Cycles through {@link #VALUES}: the IN curves are not in the set and can never be cycled to. */
         @Override
         public IConfigOptionListEntry cycle(boolean forward) {
-            int id = VALUES.indexOf(this);
-            if (id < 0) {
-                id = 0;
-            }
-            if (forward) {
-                if (++id >= VALUES.size()) {
-                    id = 0;
-                }
-            } else {
-                if (--id < 0) {
-                    id = VALUES.size() - 1;
-                }
-            }
-            return VALUES.get(id);
+            return cycleOption(VALUES, VALUES.indexOf(this), forward);
         }
 
+        /** Same as getStringValue (the reason is at {@link RecordTiming#toString()}). */
         @Override
         public String toString() {
             return this.getStringValue();
         }
     }
 
-    /** 缩放按键行为（无「关闭」——开 / 关由 {@link QoL#ZOOM_ENABLED} 总开关承担）：
-     * HOLD 按住缩放、TOGGLE 按一下切一次。 */
+    /** Zoom key behaviour (no "off" - on/off belongs to the {@link QoL#ZOOM_ENABLED} master switch):
+     * HOLD zooms while held, TOGGLE flips once per press. */
     public enum ZoomKeyBehaviour implements IConfigOptionListEntry {
         HOLD("hold"),
         TOGGLE("toggle");
 
+        /** The UI dropdown set, accounting per {@link RecordTiming#VALUES}. */
         public static final ImmutableList<ZoomKeyBehaviour> VALUES = ImmutableList.copyOf(values());
 
         private final String configString;
@@ -893,16 +1625,21 @@ public class GlobalConfig implements IConfigHandler {
             this.configString = configString;
         }
 
+        /** Serialized value, same as {@link RecordTiming#getStringValue()} ("hold"/"toggle"). */
         @Override
         public String getStringValue() {
             return this.configString;
         }
 
+        /** UI display name by the current language; translation key
+         * {@code nomorezombies.config.zoom.keyBehaviour.<configString>}. */
         @Override
         public String getDisplayName() {
             return StringUtils.translate("nomorezombies.config.zoom.keyBehaviour." + this.configString);
         }
 
+        /** Config file string -> enum: falls back to HOLD on no match;
+         * comparison rules per {@link RecordTiming#fromString(String)}. */
         @Override
         public ZoomKeyBehaviour fromString(String value) {
             for (ZoomKeyBehaviour v : VALUES) {
@@ -910,39 +1647,33 @@ public class GlobalConfig implements IConfigHandler {
                     return v;
                 }
             }
-            return HOLD; // 未知/旧值回落默认，免得 ConfigOptionList.value 变 null 崩一屏
+            return HOLD; // unknown/old values fall back to the default (the reason is at RecordTiming.fromString)
         }
 
+        /** Cycles: wraps to the start when out of range, same rule as {@link RecordTiming#cycle(boolean)}. */
         @Override
         public IConfigOptionListEntry cycle(boolean forward) {
-            int id = this.ordinal();
-            if (forward) {
-                if (++id >= values().length) {
-                    id = 0;
-                }
-            } else {
-                if (--id < 0) {
-                    id = values().length - 1;
-                }
-            }
-            return values()[id];
+            return cycleOption(java.util.Arrays.asList(values()), this.ordinal(), forward);
         }
 
+        /** Same as getStringValue (the reason is at {@link RecordTiming#toString()}). */
         @Override
         public String toString() {
             return this.getStringValue();
         }
     }
 
-    // ======================= ESP 渲染机制 =======================
+    // ----ESP render mode----
 
-    /** ESP / 血条渲染机制（无「关闭」——开 / 关由各 ESP/血条总开关承担）：
-     * 常规（NORMAL）= 深度测试 + 穿墙双层叠加（默认，当前行为不变）；
-     * 穿墙（THROUGH_WALLS）= 仅穿墙层，不画墙前部分。 */
+    /** The ESP/health-bar render mode (no "off" - on/off belongs to each ESP/health bar's master switch):
+     * NORMAL draws only the LEQUAL depth layer for ESP; THROUGH_WALLS stacks LEQUAL + ALWAYS
+     * for ESP, keeping solid lines in front of walls and adding translucent x-ray behind; the
+     * health bar reusing this enum picks LEQUAL or ALWAYS respectively. */
     public enum EspRenderMode implements IConfigOptionListEntry {
         NORMAL("normal"),
         THROUGH_WALLS("through_walls");
 
+        /** The UI dropdown set, accounting per {@link RecordTiming#VALUES}. */
         public static final ImmutableList<EspRenderMode> VALUES = ImmutableList.copyOf(values());
 
         private final String configString;
@@ -951,16 +1682,21 @@ public class GlobalConfig implements IConfigHandler {
             this.configString = configString;
         }
 
+        /** Serialized value, same as {@link RecordTiming#getStringValue()} (lower-case configString). */
         @Override
         public String getStringValue() {
             return this.configString;
         }
 
+        /** UI display name by the current language; translation key
+         * {@code nomorezombies.config.qol.espRenderMode.<configString>}. */
         @Override
         public String getDisplayName() {
             return StringUtils.translate("nomorezombies.config.qol.espRenderMode." + this.configString);
         }
 
+        /** Config file string -> enum: falls back to NORMAL on no match;
+         * comparison rules per {@link RecordTiming#fromString(String)}. */
         @Override
         public EspRenderMode fromString(String value) {
             for (EspRenderMode v : VALUES) {
@@ -971,35 +1707,35 @@ public class GlobalConfig implements IConfigHandler {
             return NORMAL;
         }
 
+        /** Cycles: wraps to the start when out of range, same rule as {@link RecordTiming#cycle(boolean)}. */
         @Override
         public IConfigOptionListEntry cycle(boolean forward) {
-            int id = this.ordinal();
-            if (forward) {
-                if (++id >= values().length) {
-                    id = 0;
-                }
-            } else {
-                if (--id < 0) {
-                    id = values().length - 1;
-                }
-            }
-            return values()[id];
+            return cycleOption(java.util.Arrays.asList(values()), this.ordinal(), forward);
         }
 
+        /** Same as getStringValue (the reason is at {@link RecordTiming#toString()}). */
         @Override
         public String toString() {
             return this.getStringValue();
         }
     }
 
-    // ======================= 持久化 =======================
+    // ----Persistence----
 
     /**
-     * 从 {@code config/nomorezombies.json} 读出全部配置分组（MaLiLib 格式），
-     * 按类名分节填回各组的 OPTIONS。
+     * Reads all config groups from {@code config/nomorezombies.json} (MaLiLib
+     * format), filling each group's OPTIONS back by section name.
      *
-     * <p>文件不存在或不可读时静默跳过，配置保持出厂默认，首启不报错；
-     * JSON 解析失败才记一条错误日志，方便排查损坏的配置文件。
+     * <p>A missing file keeps factory defaults and writes to disk immediately
+     * (first creation); an existing but unreadable file is silently skipped
+     * with factory defaults kept, so first boot never errors;
+     * only a JSON parse failure logs one error, easing diagnosis of a corrupt
+     * config file.
+     *
+     * <p>After reading, {@link #normalizeAnchorKeys()} always runs: the HUD
+     * anchor ratios' legal range is {@code 0~1}, while old config files may
+     * still carry old-semantics negative values, and unclamped they would be
+     * interpreted as "hug the leading edge" at runtime (see that method's note).
      */
     public static void loadFromFile() {
         Path configFile = FileUtils.getConfigDirectoryAsPath().resolve(CONFIG_FILE_NAME);
@@ -1013,7 +1749,7 @@ public class GlobalConfig implements IConfigHandler {
                 ConfigUtils.readConfigBase(root, "Spawntimes", Spawntimes.OPTIONS);
                 ConfigUtils.readConfigBase(root, "Powerups", Powerups.OPTIONS);
                 ConfigUtils.readConfigBase(root, "Record", Record.OPTIONS);
-                ConfigUtils.readConfigBase(root, "AaCommand", AaCommand.OPTIONS);
+                ConfigUtils.readConfigBase(root, "AAAutoCommand", AAAutoCommand.OPTIONS);
                 ConfigUtils.readConfigBase(root, "Hud", Hud.OPTIONS);
                 ConfigUtils.readConfigBase(root, "QoL", QoL.OPTIONS);
                 ConfigUtils.readConfigBase(root, "Query", Query.OPTIONS);
@@ -1023,17 +1759,35 @@ public class GlobalConfig implements IConfigHandler {
                 ConfigUtils.readConfigBase(root, "Gamma", Gamma.OPTIONS);
                 ConfigUtils.readConfigBase(root, "FreeCamera", FreeCam.OPTIONS);
 
-                // 各 HUD 可见性默认全开，默认关的只有总开关 HUD_MASTER——所以
-                // 旧版独立开关（showSpawnTimes/powerupAlert/teamStats/lightningRodQueue）
-                // 的迁移代码可以删掉：新键缺失时自然取默认 true，不必再搬旧值。
+                // Reads recognize only current key names; extra keys in the config file are ignored:
+                // of the 11 HUDs' independent visibility, all are off except roll stats (on out of
+                // the box), and the master switch HUD_MASTER defaults on;
+                // defaults apply only when the config file is missing; existing same-key values in
+                // old configs are kept as is.
+                //
+                // Coordinate keys are clamped uniformly after reading: anchor ratios' legal range is
+                // 0~1 and negatives are not part of it;
+                // out-of-range values are clamped into range (see normalizeAnchorKeys)
+                normalizeAnchorKeys();
             } else {
                 NoMoreZombies.LOGGER.error("loadFromFile(): Failed to parse config file '{}' as a JSON element.", configFile.toAbsolutePath());
             }
+        } else if (!Files.exists(configFile)) {
+            // First creation: write factory defaults to disk immediately (anchor ratio's three
+            // tiers, resolution-independent and client-language-independent too, see
+            // {@code Hud#isChineseClient()});
+            // happens only when "the file does not exist" - once it exists, later client-language
+            // changes never rearrange the layout
+            // (the coordinates the player dragged are authoritative). Deliberately not
+            // overwriting "exists but unreadable / unparseable" files: those are mostly
+            // hand-broken by the player, and wiping to defaults equals losing the config - logging
+            // only is safer
+            saveToFile();
         }
     }
 
-    /** 把全部配置分组按 MaLiLib 格式写回 {@code config/nomorezombies.json}；
-     * 配置目录不存在就先建目录，保证首次保存不落空。 */
+    /** Writes all config groups back to {@code config/nomorezombies.json} in MaLiLib format;
+     *  the config directory is created first when missing, so a first save never misses. */
     public static void saveToFile() {
         Path dir = FileUtils.getConfigDirectoryAsPath();
 
@@ -1047,7 +1801,7 @@ public class GlobalConfig implements IConfigHandler {
             ConfigUtils.writeConfigBase(root, "Spawntimes", Spawntimes.OPTIONS);
             ConfigUtils.writeConfigBase(root, "Powerups", Powerups.OPTIONS);
             ConfigUtils.writeConfigBase(root, "Record", Record.OPTIONS);
-            ConfigUtils.writeConfigBase(root, "AaCommand", AaCommand.OPTIONS);
+            ConfigUtils.writeConfigBase(root, "AAAutoCommand", AAAutoCommand.OPTIONS);
             ConfigUtils.writeConfigBase(root, "Hud", Hud.OPTIONS);
             ConfigUtils.writeConfigBase(root, "QoL", QoL.OPTIONS);
             ConfigUtils.writeConfigBase(root, "Query", Query.OPTIONS);
@@ -1061,190 +1815,242 @@ public class GlobalConfig implements IConfigHandler {
         }
     }
 
-    /** 配置变更回调：先落盘、再重载，保证文件与内存永远同步——改了就得立刻生效并留存。 */
+    /** The config-change callback: persist first, then reload, keeping file and memory always in sync -
+     *  a change must take effect immediately and survive. */
     @Override
     public void onConfigsChanged() {
         saveToFile();
         loadFromFile();
     }
 
-    /** MaLiLib 生命周期回调：游戏启动阶段读一次配置文件，把上次的设置捞回来。 */
+    /** MaLiLib lifecycle callback: reads the config file once at game startup, recovering the last settings. */
     @Override
     public void load() {
         loadFromFile();
     }
 
-    /** MaLiLib 生命周期回调：退出 / 保存时机把当前设置写盘，避免关游戏丢配置。 */
+    /** MaLiLib lifecycle callback: writes current settings at exit/save time so closing the game never loses config. */
     @Override
     public void save() {
         saveToFile();
     }
 
-    // ======================= HUD 坐标解析（-1 = 自动定位） =======================
+    // ----HUD anchor resolution (anchor ratios, cross-resolution)----
     //
-    // 所有 getX*/getY* 方法统一语义：返回值是屏幕比例（0.0~1.0），谁用谁乘屏宽/屏高。
-    // 渲染器里这样用：absoluteX = getXFoo(screenWidth) * screenWidth；
-    // 编辑器里这样用：workX = resolvedX.applyAsDouble(screenWidth)（即直接调 getXFoo）。
-    // 负值哨兵（< 0）代表「用户没手动调过」，触发对应组件的自动贴边回退逻辑——
-    // 也就是下面这些方法里一大半的兜底计算。
+    // The return value is an <b>anchor ratio</b> (0.0-1.0), not a "top-left screen ratio":
+    // 0.0 = hug the leading edge (left/top), 0.5 = centered, 1.0 = hug the trailing edge
+    // (right/bottom).
+    // The travel ([reserve, screenW - contentW - reserve]) is computed live by the renderer
+    // from the screen width; this only answers "where along the stretch".
+    //
+    // Usage in a renderer:
+    //   int w = Math.round(hudWidth(tr) * scale);
+    //   int x = TotalHUDRenderer.anchorPixels(getXFoo(), screenWidth, w, RESERVE_X);
+    // In the editor: workX is the same anchor ratio (resolveWorkX's sentinel fallback normalizes
+    // to the same tier).
+    //
+    // The same-named coordinate keys in old config files carried different semantics;
+    // loadFromFile() pulls out-of-range values back into 0~1 (see normalizeAnchorKeys).
+    //
+    // Factory defaults therefore only have three usable tiers: 0 / 0.5 / 1.
 
-    // ---- 波次时间 HUD：默认右下角，内缩不溢出 ----
+    // ----Wave time HUD: bottom-right by default, right- and bottom-hugging----
 
     /**
-     * 波次时间 HUD 默认贴右：把组件像素宽算出来再转成比例，保证右边不溢出。
+     * The wave time HUD's default right-hug (anchor ratio 1.0).
      *
-     * <p>组件宽 = 箭头宽 + 最宽行文字宽，与 buildSpawnTimePreview.totalW 保持同一
-     * 口径——预览图怎么量、这里就怎么排，所见即所得。
+     * <p>Width is no longer computed here: the renderer measures the component
+     * width this frame and anchorPixels pins it to the right edge;
+     * changing resolution keeps it right-hugging, because "right-hug" is now
+     * literally the number 1.0.
      */
-    public static double getXSpawnTime(int screenWidth) {
-        if (Hud.X_SPAWN_TIME.getDoubleValue() < 0) {
-            net.minecraft.client.font.TextRenderer tr = MinecraftClient.getInstance().textRenderer;
-            if (tr == null) return 0.85;
-            int arrowW = tr.getWidth("➤ ");
-            String[] lines = {"W1 00:12", "W2 00:18", "W3 00:24", "W4 00:30", "W5 00:36", "W6 00:44"};
-            int lineW = 0;
-            for (String s : lines) lineW = Math.max(lineW, tr.getWidth(s));
-            int hudW = arrowW + lineW;
-            // 再留 4px 边距，转成比例——宁可稍离边也别碰着屏幕边缘
-            return Math.max(0.0, (double)(screenWidth - hudW - 4) / screenWidth);
-        }
-        return Hud.X_SPAWN_TIME.getDoubleValue();
+    public static double getXSpawnTime() {
+        return clampAnchor(Hud.X_SPAWN_TIME.getDoubleValue());
+    }
+
+    /** The wave time HUD's default bottom-hug (anchor ratio 1.0; the renderer declares no reserve). */
+    public static double getYSpawnTime() {
+        return clampAnchor(Hud.Y_SPAWN_TIME.getDoubleValue());
+    }
+
+    // ----Power-up HUD: left side, vertically centered by default----
+
+    /** The power-up HUD's default left-hug (anchor ratio 0.0). */
+    public static double getXPowerup() {
+        return clampAnchor(Hud.X_POWERUP.getDoubleValue());
+    }
+
+    /** The power-up HUD's default vertical center (anchor ratio 0.5). */
+    public static double getYPowerup() {
+        return clampAnchor(Hud.Y_POWERUP.getDoubleValue());
+    }
+
+    // ----Team stats HUD: top-left by default----
+
+    /** The team stats HUD's default left-hug (anchor ratio 0.0); the table lays out from the left. */
+    public static double getXTeamStats() {
+        return clampAnchor(Hud.X_TEAM_STATS.getDoubleValue());
+    }
+
+    /** The team stats HUD's default top-hug (anchor ratio 0.0); the table lays out from the top. */
+    public static double getYTeamStats() {
+        return clampAnchor(Hud.Y_TEAM_STATS.getDoubleValue());
+    }
+
+    // ----Time HUD: top-right by default, right-hugging without overflow----
+
+    /** The time HUD's default right-hug (anchor ratio 1.0). */
+    public static double getXGameTime() {
+        return clampAnchor(Hud.X_GAME_TIME.getDoubleValue());
+    }
+
+    /** The time HUD's default top-hug (anchor ratio 0.0), pinned firmly top-right. */
+    public static double getYGameTime() {
+        return clampAnchor(Hud.Y_GAME_TIME.getDoubleValue());
+    }
+
+    // ----Lightning rod queue HUD: horizontally centered, above the hotbar by default----
+
+    /** The lightning rod queue HUD's default horizontal center (anchor ratio 0.5) - centering is resolution-independent. */
+    public static double getXLRQueue() {
+        return clampAnchor(Hud.X_LRQUEUE.getDoubleValue());
+    }
+
+    /** The lightning rod queue HUD's default just above the hotbar (anchor ratio 1.0). */
+    public static double getYLRQueue() {
+        return clampAnchor(Hud.Y_LRQUEUE.getDoubleValue());
+    }
+
+    // ----AA command HUD: bottom-left by default----
+
+    /** The AA command HUD's default left-hug (anchor ratio 0.0); text rows lay out from the left. */
+    public static double getXAAAutoCommand() {
+        return clampAnchor(Hud.X_AA_AUTO_COMMAND.getDoubleValue());
+    }
+
+    /** The AA command HUD's default bottom-hug (anchor ratio 1.0; the renderer reserves hotbar space). */
+    public static double getYAAAutoCommand() {
+        return clampAnchor(Hud.Y_AA_AUTO_COMMAND.getDoubleValue());
+    }
+
+    // ----CPS HUD: middle-right by default----
+
+    /** The CPS HUD's default right-hug (anchor ratio 1.0). */
+    public static double getXCps() {
+        return clampAnchor(Hud.X_CPS.getDoubleValue());
+    }
+
+    /** The CPS HUD's default vertical center (anchor ratio 0.5). */
+    public static double getYCps() {
+        return clampAnchor(Hud.Y_CPS.getDoubleValue());
+    }
+
+    // ----Global overview HUD: top-right by default----
+
+    /** The global overview HUD's default right-hug (anchor ratio 1.0). */
+    public static double getXGlobalOverview() {
+        return clampAnchor(Hud.X_GLOBAL_OVERVIEW.getDoubleValue());
+    }
+
+    /** The global overview HUD's default top-hug (anchor ratio 0.0), on the same horizontal line as team stats. */
+    public static double getYGlobalOverview() {
+        return clampAnchor(Hud.Y_GLOBAL_OVERVIEW.getDoubleValue());
+    }
+
+    // ----Status effects HUD: upper-right, slightly toward center (near the vanilla effects HUD)----
+
+    /** The status effects HUD's default right-hug (anchor ratio 1.0). */
+    public static double getXStatusEffects() {
+        return clampAnchor(Hud.X_STATUS_EFFECTS.getDoubleValue());
+    }
+
+    /** The status effects HUD's default Y ratio 0.45, upper-middle-right - exactly where vanilla's effect icons sit. */
+    public static double getYStatusEffects() {
+        return clampAnchor(Hud.Y_STATUS_EFFECTS.getDoubleValue());
+    }
+
+    // ----Scoreboard HUD: default pixel-coincident with the vanilla sidebar (right-hug + vertical center)----
+
+    /**
+     * The scoreboard HUD's default right-hug (anchor ratio 1.0).
+     *
+     * <p>"Right-hug" is just 1.0: the renderer measures the width from the
+     * current screen's row count and positions; row-count changes never push
+     * the sidebar off screen.
+     */
+    public static double getXScoreboard() {
+        return clampAnchor(Hud.X_SCOREBOARD.getDoubleValue());
+    }
+
+    /** The scoreboard HUD's default vertical center (anchor ratio 0.5). */
+    public static double getYScoreboard() {
+        return clampAnchor(Hud.Y_SCOREBOARD.getDoubleValue());
+    }
+
+    // ----Roll stats HUD: top-left by default (in the "battle corner" with team stats)----
+
+    /** The roll stats HUD's default left-hug (anchor ratio 0.0). */
+    public static double getXRollStats() {
+        return clampAnchor(Hud.X_ROLL_STATS.getDoubleValue());
+    }
+
+    /** The roll stats HUD's default top-hug (anchor ratio 0.0). */
+    public static double getYRollStats() {
+        return clampAnchor(Hud.Y_ROLL_STATS.getDoubleValue());
+    }
+
+    /** The anchor ratio's shared clamp: out-of-range/old sentinel values are clamped into 0~1 (see
+     * {@code TotalHUDRenderer#clampAnchorRatio}). */
+    private static double clampAnchor(double raw) {
+        return cn.gsfy.nmz.client.features.gamehud.TotalHUDRenderer.clampAnchorRatio(raw);
     }
 
     /**
-     * 波次时间 HUD 默认贴底：组件高 6 行文字，悬在物品栏上方——
-     * 留出 hotbar 22px + 4px 边距，避免压着快捷栏。
+     * Clamps all HUD coordinate keys into the anchor ratio's legal range
+     * {@code 0~1}.
+     *
+     * <p>{@code clampAnchor} would interpret a negative as "hug the leading
+     * edge", and a negative is not a legal state under the anchor accounting;
+     * old config files may still carry old-semantics coordinate values, which
+     * must be explicitly clamped after reading - otherwise runtime would
+     * interpret them as "everything hugging the top-left corner",
+     * which is nothing like the factory layout.
+     *
+     * <p><b>Deliberately no numeric conversion</b>: the old semantics'
+     * value was "the top-left corner's ratio of the screen width", and
+     * converting to an anchor ratio needs the original screen width and
+     * component width - neither stored in the config - so only range clamping
+     * happens; to return to the factory layout, delete
+     * {@code config/nomorezombies.json}.
      */
-    public static double getYSpawnTime(int screenHeight) {
-        if (Hud.Y_SPAWN_TIME.getDoubleValue() < 0) {
-            net.minecraft.client.font.TextRenderer tr = MinecraftClient.getInstance().textRenderer;
-            if (tr == null) return 0.7;
-            int hudH = tr.fontHeight * 6;
-            int hotbarMargin = 22 + 4; // 原版热键栏约 22px（GUI scale 2 下），再留 4px 边距
-            return Math.max(0.0, (double)(screenHeight - hudH - hotbarMargin) / screenHeight);
+    private static void normalizeAnchorKeys() {
+        int clamped = 0;
+        for (ConfigDouble key : ANCHOR_KEYS) {
+            double raw = key.getDoubleValue();
+            double fixed = clampAnchor(raw);
+            if (fixed != raw) {
+                key.setDoubleValue(fixed);
+                clamped++;
+            }
         }
-        return Hud.Y_SPAWN_TIME.getDoubleValue();
-    }
-
-    // ---- 道具 HUD：默认左侧垂直居中 ----
-
-    /** 道具 HUD 默认贴左（X=0）——纵向列表放左缘，不跟右侧信息抢地方。 */
-    public static double getXPowerup(int screenWidth) {
-        return Hud.X_POWERUP.getDoubleValue() < 0 ? 0.0 : Hud.X_POWERUP.getDoubleValue();
-    }
-
-    /** 道具 HUD 默认垂直居中：4 行文字，以屏幕中心上方为基准，列表不偏不倚。 */
-    public static double getYPowerup(int screenHeight) {
-        if (Hud.Y_POWERUP.getDoubleValue() < 0) {
-            net.minecraft.client.font.TextRenderer tr = MinecraftClient.getInstance().textRenderer;
-            if (tr == null) return 0.4;
-            int hudH = tr.fontHeight * 4;
-            return Math.max(0.0, (double)(screenHeight / 2 - hudH / 2) / screenHeight);
+        if (clamped > 0) {
+            NoMoreZombies.LOGGER.info(
+                    "[配置] {} 个HUD锚点比例被收进0~1(旧口径的负值哨兵不再表示'未拖动');"
+                            + "若布局不符合预期,删除配置文件即可回到出厂布局", clamped);
         }
-        return Hud.Y_POWERUP.getDoubleValue();
     }
 
-    // ---- 队伍统计 HUD：默认左上角 ----
-
-    /** 队伍统计 HUD 默认贴左（X 比例 = 0），表格从左边排起。 */
-    public static double getXTeamStats(int screenWidth) {
-        return Hud.X_TEAM_STATS.getDoubleValue() < 0 ? 0.0 : Hud.X_TEAM_STATS.getDoubleValue();
-    }
-
-    /** 队伍统计 HUD 默认贴顶（Y 比例 = 0），表格从顶排起。 */
-    public static double getYTeamStats(int screenHeight) {
-        return Hud.Y_TEAM_STATS.getDoubleValue() < 0 ? 0.0 : Hud.Y_TEAM_STATS.getDoubleValue();
-    }
-
-    // ---- 时间 HUD：默认右上角，精确内缩不溢出 ----
-
-    /**
-     * 时间 HUD 默认贴右：取「游戏时长」「本回合」两行里较宽者当组件宽，
-     * 转成比例并留 4px 边距，保证右侧不溢出。
-     */
-    public static double getXGameTime(int screenWidth) {
-        double v = Hud.X_GAME_TIME.getDoubleValue();
-        if (v >= 0) return v;
-        net.minecraft.client.font.TextRenderer tr = MinecraftClient.getInstance().textRenderer;
-        if (tr == null) return 0.8;
-        int wGame  = tr.getWidth(net.minecraft.text.Text.translatable("nomorezombies.timehud.game").getString())
-                + tr.getWidth("00:12:34");
-        int wRound = tr.getWidth(net.minecraft.text.Text.translatable("nomorezombies.timehud.round").getString())
-                + tr.getWidth("00:56");
-        int hudW = Math.max(wGame, wRound);
-        return Math.max(0.0, (double)(screenWidth - hudW - 4) / screenWidth);
-    }
-
-    /** 时间 HUD 默认贴顶（Y 比例 = 0），右上角稳稳钉住。 */
-    public static double getYGameTime(int screenHeight) {
-        return Hud.Y_GAME_TIME.getDoubleValue() < 0 ? 0.0 : Hud.Y_GAME_TIME.getDoubleValue();
-    }
-
-    // ---- 电击棒队列 HUD：默认水平居中，物品栏上方 ----
-
-    /**
-     * 电击棒队列 HUD 默认水平居中：组件宽按 4 格算——
-     * 4格 * (26px + 3px gap) - 3px gap = 113px，正正好好悬在屏幕中轴。
-     */
-    public static double getXLRQueue(int screenWidth) {
-        if (Hud.X_LRQUEUE.getDoubleValue() < 0) {
-            // 与 buildLRQueuePreview 同口径：tileW=26, gap=3, 4格
-            int hudW = 26 * 4 + 3 * 3; // = 113px
-            return Math.max(0.0, (double)(screenWidth / 2 - hudW / 2) / screenWidth);
-        }
-        return Hud.X_LRQUEUE.getDoubleValue();
-    }
-
-    /**
-     * 电击棒队列 HUD 默认贴物品栏顶：组件高 34px，物品栏 22px，再留 4px 间距，
-     * 不压着快捷栏。
-     */
-    public static double getYLRQueue(int screenHeight) {
-        if (Hud.Y_LRQUEUE.getDoubleValue() < 0) {
-            int hudH = 34;
-            int hotbarMargin = 22 + 4;
-            return Math.max(0.0, (double)(screenHeight - hudH - hotbarMargin) / screenHeight);
-        }
-        return Hud.Y_LRQUEUE.getDoubleValue();
-    }
-
-    // ---- AA 指挥 HUD：默认左下角 ----
-
-    /** AA 指挥 HUD 默认贴左（X 比例 = 0），文字行从左边排起。 */
-    public static double getXAaCommand(int screenWidth) {
-        double v = Hud.X_AA_COMMAND.getDoubleValue();
-        return v >= 0 ? v : 0.0;
-    }
-
-    /**
-     * AA 指挥 HUD 默认贴底：5 行文字悬在物品栏上方，
-     * 留 hotbar 22px + 4px 边距，不挡快捷栏。
-     */
-    public static double getYAaCommand(int screenHeight) {
-        double v = Hud.Y_AA_COMMAND.getDoubleValue();
-        if (v >= 0) return v;
-        net.minecraft.client.font.TextRenderer tr = MinecraftClient.getInstance().textRenderer;
-        if (tr == null) return 0.8;
-        int hudH = tr.fontHeight * 5;
-        int hotbarMargin = 22 + 4;
-        return Math.max(0.0, (double)(screenHeight - hudH - hotbarMargin) / screenHeight);
-    }
-
-    // ---- CPS 统计 HUD：默认右中 ----
-
-    /** CPS HUD 默认贴右：按「L 88  R 88」这种典型行宽估组件宽，留 4px 边距——别让数字贴到屏幕边。 */
-    public static double getXCps(int screenWidth) {
-        double v = Hud.X_CPS.getDoubleValue();
-        if (v >= 0) return v;
-        net.minecraft.client.font.TextRenderer tr = MinecraftClient.getInstance().textRenderer;
-        if (tr == null) return 0.88;
-        int hudW = tr.getWidth("RMB 88 CPS");
-        return Math.max(0.0, (double)(screenWidth - hudW - 4) / screenWidth);
-    }
-
-    /** CPS HUD 默认垂直居中（Y 比例 = 0.5），右侧中段不碍事。 */
-    public static double getYCps(int screenHeight) {
-        double v = Hud.Y_CPS.getDoubleValue();
-        return v >= 0 ? v : 0.5;
-    }
+    /** All HUD coordinate keys (22) - iterated only by {@link #normalizeAnchorKeys()}. */
+    private static final java.util.List<ConfigDouble> ANCHOR_KEYS = java.util.List.of(
+            Hud.X_SPAWN_TIME, Hud.Y_SPAWN_TIME,
+            Hud.X_POWERUP, Hud.Y_POWERUP,
+            Hud.X_TEAM_STATS, Hud.Y_TEAM_STATS,
+            Hud.X_GAME_TIME, Hud.Y_GAME_TIME,
+            Hud.X_LRQUEUE, Hud.Y_LRQUEUE,
+            Hud.X_AA_AUTO_COMMAND, Hud.Y_AA_AUTO_COMMAND,
+            Hud.X_CPS, Hud.Y_CPS,
+            Hud.X_GLOBAL_OVERVIEW, Hud.Y_GLOBAL_OVERVIEW,
+            Hud.X_STATUS_EFFECTS, Hud.Y_STATUS_EFFECTS,
+            Hud.X_SCOREBOARD, Hud.Y_SCOREBOARD,
+            Hud.X_ROLL_STATS, Hud.Y_ROLL_STATS);
 }

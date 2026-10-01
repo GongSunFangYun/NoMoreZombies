@@ -23,13 +23,16 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 
 /**
- * 把 {@code assets/nomorezombies/data/*.json} 里的各张数据表统一解析、组装成一份
- * 可整体替换的 {@link GameData}——波次、Boss 轮、道具规律、AA 指挥详情的唯一来源。
+ * Parses every table under {@code assets/nomorezombies/data/*.json} and
+ * assembles them into one wholesale-replaceable {@link GameData}—the single
+ * source for waves, boss rounds, powerup patterns, and AA command details.
  *
- * <p>以 {@link IdentifiableResourceReloadListener} 挂进客户端资源加载阶段，于是 F3+T
- * 也能热刷新数据。解析先在新对象 {@code newData} 上攒齐，再一次赋值替换静态字段
- * {@code data}——读者永远看到「完整的一张表」，而不是拼到一半的半成品；其余模块只
- * 通过 {@link #get()} 只读访问。
+ * <p>Hooked into the client resource reload as an
+ * {@link IdentifiableResourceReloadListener}, so F3+T refreshes data too.
+ * Parsing builds up on a fresh {@code newData} object first, then swaps the
+ * static {@code data} field in one assignment—readers always see a complete
+ * table, never a half-assembled one. Other modules read it read-only through
+ * {@link #get()}.
  */
 public class DataManager {
 
@@ -37,26 +40,50 @@ public class DataManager {
     private static GameData data = new GameData();
 
     /**
-     * 取当前生效的游戏数据——重载未完成期间可能仍是旧表或空表，调用方按需容忍。
+     * Current live game data. The reload swaps the {@code data} reference
+     * only after the whole table is parsed on the prepare thread, so reads
+     * see the old table or the initial empty one—never a half-assembled one.
      *
-     * @return 当前已解析的 {@link GameData}
+     * @return the shared instance by reference; callers treat it as
+     *   read-only—in-place mutation writes back to every reader. Never
+     *   {@code null}.
      */
     public static GameData get() {
         return data;
     }
 
     /**
-     * 注册资源重载监听器——把数据表刷新挂进客户端资源重载（含 F3+T），
-     * 改数据文件不用重启游戏。建议只在模组初始化阶段调用一次。
+     * Registers the reload listener—wires data refresh into the client
+     * resource reload (F3+T included), so editing data files does not need
+     * a game restart. Call once during mod initialization.
      */
     public static void init() {
         ResourceManagerHelper.get(ResourceType.CLIENT_RESOURCES)
                 .registerReloadListener(new IdentifiableResourceReloadListener() {
+                    /**
+                     * Listener id ({@code nomorezombies:game_data}). Fabric
+                     * orders reload stages by it, and log lines use it.
+                     */
                     @Override
                     public Identifier getFabricId() {
                         return Identifier.of(NoMoreZombies.MOD_ID, "game_data");
                     }
 
+                    /**
+                     * Fires on first load or F3+T. {@code load} runs on
+                     * prepareExecutor and does both the parse and the
+                     * reference swap, then the synchronizer barrier is
+                     * awaited; the apply stage carries only an empty action,
+                     * so the returned future spans the whole reload.
+                     *
+                     * @param synchronizer Fabric's prepare/apply stage
+                     *   synchronizer
+                     * @param manager the current client resource manager
+                     * @param prepareExecutor the background prepare executor
+                     * @param applyExecutor the apply-stage executor
+                     * @return a future completing both stages; an unexpected
+                     *   runtime exception completes it exceptionally
+                     */
                     @Override
                     public CompletableFuture<Void> reload(Synchronizer synchronizer, ResourceManager manager,
                                                           Executor prepareExecutor, Executor applyExecutor) {
@@ -69,16 +96,18 @@ public class DataManager {
     }
 
     /**
-     * 在后台准备线程里把四张数据表逐个解析、组装成新的 {@link GameData}。
-     * 单表失败只丢那一张（回退空表），不拖垮整次资源重载。
+     * Parses the four tables one by one on the background prepare thread and
+     * assembles a new {@link GameData}. One table failing drops only that
+     * table (falls back to empty), never the whole reload.
      *
-     * @param manager 客户端资源管理器，用于定位数据文件
+     * @param manager client resource manager, used to locate the data files
      */
     private static void load(ResourceManager manager) {
         GameData newData = new GameData();
-        // 文件级隔离：单表解析失败只丢该表（回退空表），不拖垮整个资源重载。
-        // 之所以要兜底：AA 波次表只有 103 行，而回合数上限为 105，缺的那两行
-        // 由 CheckSpawnTimes/SpawnNotice 的 isValidIndex 守卫静默跳过。
+        // Today wave_times rows and caps line up: AA covers 1–105,
+        // DE/BB/Prison cover 1–30. The empty-table fallback still stays:
+        // a missing or corrupt hot-reload resource must not take down the
+        // other three tables.
         loadTable(manager, "wave_times", newData::addWaveTimes);
         loadTable(manager, "boss_rounds", newData::addBossRounds);
         loadTable(manager, "powerup_patterns", newData::addPowerupPatterns);
@@ -87,12 +116,14 @@ public class DataManager {
     }
 
     /**
-     * 读取并解析单张数据表；任一步异常只回退该表（记日志、保持空表），
-     * 不向调用方抛错，也不中断其它表的加载。
+     * Reads and parses one data table. Any failure only rolls back that
+     * table (logged, stays empty); it does not throw to the caller or
+     * interrupt the other tables' loading.
      *
-     * @param manager 客户端资源管理器
-     * @param name    数据表文件名（不含 {@code .json} 后缀，位于 data 目录）
-     * @param parser  解析回调，接收读取到的根 JSON 对象
+     * @param manager client resource manager
+     * @param name data table file name (without the {@code .json} suffix,
+     *   under the data directory)
+     * @param parser parse callback receiving the root JSON object
      */
     private static void loadTable(ResourceManager manager, String name, Consumer<JsonObject> parser) {
         try {
@@ -103,13 +134,15 @@ public class DataManager {
     }
 
     /**
-     * 读取并解析指定数据文件为顶层 JSON 对象。
-     * 文件缺失 / 读取出错 / 解析失败都返回空对象并记日志——宁可给空表，
-     * 也不让一份坏文件把整个资源重载崩掉。
+     * Reads and parses the named data file into a top-level JSON object.
+     * Missing file, read error, and parse failure all return an empty object
+     * and log.
      *
-     * @param manager 客户端资源管理器
-     * @param name    文件名（不含 {@code .json} 后缀，位于 data 目录）
-     * @return 数据文件的根 JSON 对象；文件缺失或解析失败时为空对象
+     * @param manager client resource manager
+     * @param name file name (without the {@code .json} suffix, under the
+     *   data directory)
+     * @return the file's root JSON object; an empty object on a missing file
+     *   or parse failure
      */
     private static JsonObject readJson(ResourceManager manager, String name) {
         Identifier id = Identifier.of(NoMoreZombies.MOD_ID, DATA_DIR + "/" + name + ".json");
